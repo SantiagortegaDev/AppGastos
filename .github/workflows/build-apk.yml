@@ -33,6 +33,13 @@ jobs:
       - name: Flutter doctor (info)
         run: flutter doctor -v
 
+      # Scaffold de archivos Android faltantes (gradle wrapper, settings.gradle.kts,
+      # styles, mipmap icons, etc.). `flutter create .` NO sobreescribe archivos
+      # existentes, así que nuestros MainActivity.kt, AndroidManifest.xml,
+      # build.gradle.kts y lib/ se preservan.
+      - name: Scaffold missing Android files
+        run: flutter create . --org com.example --project-name appgastos
+
       - name: Get dependencies
         run: flutter pub get
 
