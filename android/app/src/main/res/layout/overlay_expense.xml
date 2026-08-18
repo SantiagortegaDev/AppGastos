@@ -77,10 +77,11 @@
 
     <Button
         android:id="@+id/btnCancel"
-        style="@android:style/Widget.Button.Borderless"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="Cancelar" />
+        android:text="Cancelar"
+        android:background="@android:color/transparent"
+        android:textColor="#666666" />
 
 </LinearLayout>
