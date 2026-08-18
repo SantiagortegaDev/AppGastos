@@ -1,6 +1,6 @@
 // build.gradle.kts (app-level).
 //
-// Compatible con AGP 9.0+ (que es el default en `flutter create` reciente).
+// Compatible con AGP 9.0+ y Kotlin 2.x (defaults de `flutter create` reciente).
 // Las líneas marcadas con `[TILE]` son los cambios mínimos necesarios para
 // que el Quick Settings Tile funcione:
 //   - targetSdk 34 (para ACTION_QUICK_SETTINGS_ADD_TILE requiere API 33+).
@@ -37,12 +37,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // [AGP 9.0] Reemplaza al viejo `kotlinOptions { jvmTarget = "17" }`.
-    // Ahora se usa el DSL `compilerOptions` del plugin Kotlin Gradle.
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
-    }
-
     defaultConfig {
         applicationId = "com.example.appgastos"
         minSdk = 21
@@ -55,12 +49,21 @@ android {
         release {
             // En producción usa tu propio keystore. Para pruebas esto basta.
             signingConfig = signingConfigs.getByName("debug")
-            // [AGP 9.0] `minifyEnabled` y `shrinkResources` se mantienen pero
-            // requieren importar la prop correctamente. En AGP 9.0 son
-            // propiedades directas del BuildType, accesibles sin prefijo.
+            // [AGP 9.0] `isMinifyEnabled` / `isShrinkResources` son las
+            // propiedades Kotlin correctas (los viejos setters
+            // `minifyEnabled` / `shrinkResources` fueron eliminados).
             isMinifyEnabled = false
             isShrinkResources = false
         }
+    }
+}
+
+// [Kotlin 2.x / AGP 9.0] Reemplaza al viejo `kotlinOptions { jvmTarget = "17" }`.
+// El bloque `kotlin { compilerOptions {} }` vive a nivel TOP-LEVEL del módulo
+// (NO dentro de `android {}`).
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
