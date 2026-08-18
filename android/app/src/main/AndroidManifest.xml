@@ -49,6 +49,4 @@
             android:value="2"/>
     </application>
 
-    <!-- Soporte Android 13+ (ACTION_QUICK_SETTINGS_ADD_TILE requiere API 33). -->
-    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34"/>
 </manifest>
