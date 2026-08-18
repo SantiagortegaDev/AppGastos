@@ -30,7 +30,7 @@ val flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "
 
 android {
     namespace = "com.example.appgastos"
-    compileSdk = 34  // [TILE] 34 o superior
+    compileSdk = 36  // [TILE] 36+ requerido por shared_preferences_android
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

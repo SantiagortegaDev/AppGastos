@@ -7,6 +7,8 @@
 /// - [id]: identificador único (generado con timestamp + random).
 library;
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// Categorías soportadas por la app.
@@ -73,7 +75,6 @@ class Expense {
       );
 }
 
-// Pequeño generador de números pseudoaleatorios para evitar colisiones de ID
+// Generador de números pseudoaleatorios para evitar colisiones de ID
 // cuando el usuario registra varios gastos en el mismo microsegundo.
-import 'dart:math' as math;
 final _rng = math.Random();
