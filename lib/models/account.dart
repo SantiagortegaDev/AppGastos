@@ -46,8 +46,8 @@ class Account {
 
 /// Cuentas por defecto que se crean al primer arranque de la app.
 /// El usuario puede editarlas/eliminarlas/añadir nuevas en Settings.
-final List<Account> kDefaultAccounts = [
-  const Account(id: 'acc-cash', name: 'Efectivo', colorValue: 0xFF16A34A),
-  const Account(id: 'acc-bank', name: 'Banco', colorValue: 0xFF2563EB),
-  const Account(id: 'acc-card', name: 'Tarjeta', colorValue: 0xFF9333EA),
+const List<Account> kDefaultAccounts = [
+  Account(id: 'acc-cash', name: 'Efectivo', colorValue: 0xFF16A34A),
+  Account(id: 'acc-bank', name: 'Banco', colorValue: 0xFF2563EB),
+  Account(id: 'acc-card', name: 'Tarjeta', colorValue: 0xFF9333EA),
 ];

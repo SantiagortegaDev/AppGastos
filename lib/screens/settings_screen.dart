@@ -68,7 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             value: AppThemeMode.dark,
                             icon: Icon(Icons.dark_mode_outlined)),
                       ],
-                      selected: current.themeMode,
+                      selected: {current.themeMode},
                       onSelectionChanged: (sel) => s.setThemeMode(sel.first),
                     ),
                   ),
