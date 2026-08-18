@@ -1,13 +1,8 @@
-/// Repositorio de gastos con persistencia local en `shared_preferences`.
+/// Repositorio de gastos con persistencia en `shared_preferences`.
 ///
-/// Elección: `shared_preferences` sobre `sqflite` porque:
-/// 1. Es la opción más simple (sin migraciones, sin esquema SQL).
-/// 2. Suficiente para el volumen esperado de gastos de un usuario individual
-///    (cientos / pocos miles de registros).
-/// 3. Serializamos la lista completa a JSON — simple y robusto.
-///
-/// Si en el futuro se requieren filtros complejos, migración a `sqflite` o
-/// `drift` sería trivial manteniendo este mismo modelo `Expense`.
+/// Usa la misma key (`appgastos.expenses.v1`) que el overlay nativo Kotlin,
+/// de manera que los gastos registrados desde el overlay aparezcan al
+/// abrir la app sin necesidad de MethodChannel.
 library;
 
 import 'dart:convert';
@@ -22,37 +17,49 @@ class ExpenseRepository {
   late final SharedPreferences _prefs;
   final List<Expense> _expenses = [];
 
-  /// Inicializa el repositorio cargando los gastos persistidos.
-  /// Debe llamarse una sola vez antes de usar el repositorio (ver [main]).
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     final String? raw = _prefs.getString(_storageKey);
     if (raw != null && raw.isNotEmpty) {
-      final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
-      _expenses.addAll(
-        decoded.map((e) => Expense.fromJson(e as Map<String, dynamic>)),
-      );
+      try {
+        final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
+        _expenses.addAll(
+          decoded.map((e) => Expense.fromJson(e as Map<String, dynamic>)),
+        );
+      } catch (_) {
+        // JSON corrupto (raro pero posible si se editó a mano): ignoramos.
+      }
     }
   }
 
-  /// Lista inmutable de gastos ordenados del más reciente al más antiguo.
+  /// Recarga desde disco — útil cuando el overlay nativo pudo haber
+  /// agregado un gasto mientras la app estaba en background.
+  Future<void> reload() async {
+    await _prefs.reload();
+    _expenses.clear();
+    final String? raw = _prefs.getString(_storageKey);
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
+        _expenses.addAll(
+          decoded.map((e) => Expense.fromJson(e as Map<String, dynamic>)),
+        );
+      } catch (_) {}
+    }
+  }
+
   List<Expense> get all {
-    final sorted = [..._expenses]
-      ..sort((a, b) => b.date.compareTo(a.date));
+    final sorted = [..._expenses]..sort((a, b) => b.date.compareTo(a.date));
     return List.unmodifiable(sorted);
   }
 
-  /// Suma de todos los montos. Se calcula en O(n) — para miles de registros
-  /// es trivial; si crece, se puede cachear.
   double get total => _expenses.fold(0.0, (sum, e) => sum + e.amount);
 
-  /// Agrega un gasto y persiste inmediatamente.
   Future<void> add(Expense expense) async {
     _expenses.add(expense);
     await _persist();
   }
 
-  /// Elimina un gasto por ID (útil para futuras features tipo swipe-to-delete).
   Future<void> remove(String id) async {
     _expenses.removeWhere((e) => e.id == id);
     await _persist();

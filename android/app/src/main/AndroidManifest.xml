@@ -1,8 +1,16 @@
-<!-- AndroidManifest.xml — cambios necesarios para soportar el Quick Settings Tile. -->
+<!-- AndroidManifest.xml — AppGastos con Quick Settings Tile + Overlay nativo. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Permisos estándar (ya existen en un proyecto Flutter nuevo). -->
+    <!-- Permisos estándar. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- [OVERLAY] Permiso para que OverlayService pueda superponer UI sobre otras apps. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+
+    <!-- [OVERLAY] OverlayService arranca como foreground (necesario en Android 14+). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
         android:label="AppGastos"
@@ -18,7 +26,6 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
 
-            <!-- Theme: necesita seguir existiendo @style/NormalTheme -->
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme"/>
@@ -43,7 +50,18 @@
             </intent-filter>
         </service>
 
-        <!-- No borres esto: Flutter lo necesita. -->
+        <!-- =================================== -->
+        <!--  SERVICIO DE OVERLAY NATIVO         -->
+        <!-- =================================== -->
+        <service
+            android:name=".OverlayService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Overlay UI para registro rápido de gastos"/>
+        </service>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>

@@ -1,8 +1,10 @@
 package com.example.appgastos
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.service.quicksettings.TileService
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
@@ -12,29 +14,26 @@ import io.flutter.plugin.common.MethodChannel
 /**
  * Activity principal de la app Flutter.
  *
- * Responsabilidades:
- *  1. Host del engine de Flutter (hereda de [FlutterActivity]).
- *  2. Detectar cuando el intent con el extra `open_expense_sheet = true`
- *     llega (cold-start vía `onCreate` / re-arranque vía `onNewIntent`).
- *  3. Reenviar ese evento a Flutter usando un [MethodChannel].
- *  4. Responder desde Flutter la llamada `getInitialAction()` para que la
- *     app sepa, al arrancar, si debe abrir automáticamente el bottom sheet.
- *  5. Exponer los métodos `requestAddTile` y `requestListeningState` que
- *     usa el lado Dart para interactuar con el Tile nativo.
+ * Responsabilidades adicionales (además de hostear Flutter):
+ *  1. Detectar intent con `open_expense_sheet = true` (Tile → app abierta).
+ *  2. Reenviar ese evento a Flutter via MethodChannel.
+ *  3. Exponer `requestOverlayPermission` (SYSTEM_ALERT_WINDOW) al lado Dart.
+ *  4. Exponer `requestAddTile` (ACTION_QUICK_SETTINGS_ADD_TILE, API 33+).
+ *  5. Exponer `requestListeningState` para refrescar el Tile.
  */
 class MainActivity : FlutterActivity() {
 
     companion object {
         const val CHANNEL_NAME = "appgastos.dev/tile"
         const val EXTRA_OPEN_EXPENSE_SHEET = "open_expense_sheet"
-
-        // Llave del intent nativo para ACTION_QUICK_SETTINGS_ADD_TILE (Android 13+).
         private const val ACTION_QS_ADD_TILE = "android.service.quicksettings.action.QS_ADD_TILE"
         private const val TILE_COMPONENT_EXTRA = "android.service.quicksettings.extra.TILE_COMPONENT"
+        private const val OVERLAY_PERMISSION_REQUEST_CODE = 1001
     }
 
     private var pendingOpenSheet = false
     private var channel: MethodChannel? = null
+    private var overlayPermissionCallback: ((Boolean) -> Unit)? = null
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -43,27 +42,40 @@ class MainActivity : FlutterActivity() {
         channel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "getInitialAction" -> {
-                    // Reporta si el arranque se produjo por un toque en el Tile.
                     result.success(pendingOpenSheet)
                     pendingOpenSheet = false
                 }
-                "requestAddTile" -> {
-                    // Intenta invocar el asistente nativo "Agregar tile" (Android 13+).
-                    val launched = tryRequestAddTile()
-                    result.success(launched)
-                }
+                "requestAddTile" -> result.success(tryRequestAddTile())
                 "requestListeningState" -> {
                     tryRequestListeningState()
                     result.success(null)
                 }
+                "requestOverlayPermission" -> {
+                    // Si ya tiene permiso, responde true inmediatamente.
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)) {
+                        result.success(true)
+                    } else {
+                        // Lanza intent ACTION_MANAGE_OVERLAY_PERMISSION y reporta al volver.
+                        overlayPermissionCallback = { granted -> result.success(granted) }
+                        try {
+                            val intent = Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:$packageName")
+                            )
+                            startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST_CODE)
+                        } catch (e: Exception) {
+                            result.success(false)
+                        }
+                    }
+                }
+                "canDrawOverlays" -> result.success(
+                    Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)
+                )
                 else -> result.notImplemented()
             }
         }
     }
 
-    /**
-     * Detecta el extra en el intent inicial (cold-start).
-     */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -78,31 +90,28 @@ class MainActivity : FlutterActivity() {
     private fun handleOpenSheetIntent(intent: Intent?, fromColdStart: Boolean) {
         val shouldOpen = intent?.getBooleanExtra(EXTRA_OPEN_EXPENSE_SHEET, false) == true
         if (!shouldOpen) return
-
         if (fromColdStart) {
-            // Flutter todavía no está listo: guardamos el flag para responder
-            // cuando llegue la llamada `getInitialAction`.
             pendingOpenSheet = true
         } else {
-            // App ya en foreground: notificamos en vivo.
             channel?.invokeMethod("openExpenseSheet", null)
         }
-
-        // Limpiamos el extra para que no se "repita" en futuros onNewIntent.
         intent?.removeExtra(EXTRA_OPEN_EXPENSE_SHEET)
     }
 
-    /**
-     * Lanza el intent oficial `ACTION_QUICK_SETTINGS_ADD_TILE` (API 33+).
-     * Muestra un diálogo del sistema pidiendo al usuario que agregue el tile.
-     */
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == OVERLAY_PERMISSION_REQUEST_CODE) {
+            val granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+                    Settings.canDrawOverlays(this)
+            overlayPermissionCallback?.invoke(granted)
+            overlayPermissionCallback = null
+        }
+    }
+
     private fun tryRequestAddTile(): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return false
         return try {
-            val tileComponent = android.content.ComponentName(
-                this,
-                ExpenseTileService::class.java
-            )
+            val tileComponent = android.content.ComponentName(this, ExpenseTileService::class.java)
             val intent = Intent(ACTION_QS_ADD_TILE).apply {
                 putExtra(TILE_COMPONENT_EXTRA, tileComponent)
             }
@@ -113,17 +122,12 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    /**
-     * Solicita al sistema un refresh del estado del tile (label/icon/state).
-     */
     private fun tryRequestListeningState() {
         try {
             TileService.requestListeningState(
                 this,
                 android.content.ComponentName(this, ExpenseTileService::class.java)
             )
-        } catch (_: Exception) {
-            // Ignoramos errores silenciosamente.
-        }
+        } catch (_: Exception) {}
     }
 }

@@ -1,5 +1,4 @@
-/// Ítem de la lista de gastos. Card Material 3 con ícono de categoría,
-/// fecha relativa y monto alineado a la derecha.
+/// Ítem de la lista de gastos.
 library;
 
 import 'package:flutter/material.dart';
@@ -20,13 +19,28 @@ class ExpenseListItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: colorScheme.primaryContainer,
-          foregroundColor: colorScheme.onPrimaryContainer,
-          child: Icon(expense.category.icon),
+          backgroundColor: expense.account.color.withValues(alpha: 0.15),
+          child: Icon(expense.category.icon, color: expense.account.color),
         ),
-        title: Text(
-          expense.category.label,
-          style: theme.textTheme.titleMedium,
+        title: Row(
+          children: [
+            Text(expense.category.label, style: theme.textTheme.titleMedium),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: expense.account.color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                expense.account.name,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: expense.account.color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
         subtitle: Text(formatDateTime(expense.date)),
         trailing: Text(
