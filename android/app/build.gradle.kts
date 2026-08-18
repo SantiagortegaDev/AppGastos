@@ -1,0 +1,49 @@
+// build.gradle.kts (app-level).
+//
+// En un proyecto `flutter create` nuevo, este archivo ya existe con una
+// configuración similar. Las líneas marcadas con `[TILE]` son los cambios
+// mínimos necesarios para que el Quick Settings Tile funcione:
+//   - targetSdk 33+ (para ACTION_QUICK_SETTINGS_ADD_TILE).
+//   - No se requieren dependencias adicionales: TileService es parte del
+//     framework Android, no de AndroidX.
+
+plugins {
+    id("com.android.application")
+    id("kotlin-android")
+    id("dev.flutter.flutter-gradle-plugin")  // [TILE] presente en cualquier proyecto Flutter actual
+}
+
+android {
+    namespace = "com.example.appgastos"
+    compileSdk = 34  // [TILE] 34 o superior
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        applicationId = "com.example.appgastos"
+        minSdk = 21
+        targetSdk = 34  // [TILE] API 33+ requerido para ACTION_QS_ADD_TILE
+        versionCode = flutterVersionCode.toInt()
+        versionName = flutterVersionName
+    }
+
+    buildTypes {
+        release {
+            // En producción usa tu propio keystore. Para pruebas esto basta.
+            signingConfig = signingConfigs.getByName("debug")
+            minifyEnabled = false
+            shrinkResources = false
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}

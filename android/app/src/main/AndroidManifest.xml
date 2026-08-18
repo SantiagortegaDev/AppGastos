@@ -1,0 +1,54 @@
+<!-- AndroidManifest.xml — cambios necesarios para soportar el Quick Settings Tile. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Permisos estándar (ya existen en un proyecto Flutter nuevo). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <application
+        android:label="AppGastos"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|platformLayoutDir"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+
+            <!-- Theme: necesita seguir existiendo @style/NormalTheme -->
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"/>
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <!-- =================================== -->
+        <!--  REGISTRO DEL QUICK SETTINGS TILE   -->
+        <!-- =================================== -->
+        <service
+            android:name=".ExpenseTileService"
+            android:label="Registrar gasto"
+            android:icon="@mipmap/ic_launcher"
+            android:exported="true"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE"/>
+            </intent-filter>
+        </service>
+
+        <!-- No borres esto: Flutter lo necesita. -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2"/>
+    </application>
+
+    <!-- Soporte Android 13+ (ACTION_QUICK_SETTINGS_ADD_TILE requiere API 33). -->
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34"/>
+</manifest>
