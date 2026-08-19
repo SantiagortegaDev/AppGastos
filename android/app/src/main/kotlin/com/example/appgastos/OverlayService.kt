@@ -1,10 +1,12 @@
 package com.example.appgastos
 
-import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.*
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
@@ -13,6 +15,8 @@ import android.text.InputType
 import android.text.TextWatcher
 import android.transition.*
 import android.view.*
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.AccelerateInterpolator
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
@@ -490,7 +494,7 @@ class OverlayService : Service() {
             layoutParams = lpMatchWrap()
         }
 
-        if (accounts.isEmpty) {
+        if (accounts.isEmpty()) {
             container.addView(TextView(this@OverlayService).apply {
                 text = "No tienes cuentas configuradas."
                 textSize = 14f
@@ -564,7 +568,7 @@ class OverlayService : Service() {
         val chip = TextView(this).apply {
             this.text = text
             textSize = 16f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.MEDIUM)
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             gravity = Gravity.CENTER
             setPadding(20.dp, 14.dp, 20.dp, 14.dp)
             setTextColor(if (isSelected) primaryColor else Color.parseColor("#DD000000"))
@@ -620,7 +624,7 @@ class OverlayService : Service() {
         return TextView(this).apply {
             this.text = text
             textSize = 14f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.MEDIUM)
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             setTextColor(primaryColor)
             gravity = Gravity.CENTER
             setPadding(12.dp, 8.dp, 12.dp, 8.dp)
