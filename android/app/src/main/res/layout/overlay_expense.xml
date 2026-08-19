@@ -1,87 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Layout del overlay del Tile (modal "¿Cuánto gastaste?").
-
-  Se infla dentro de una ventana TYPE_APPLICATION_OVERLAY que aparece sobre
-  cualquier app activa. El contenedor raíz es un CardView con esquinas
-  redondeadas para dar un look Material 3 lo más cercano posible.
-
-  El layout se divide en 2 pantallas controladas por ViewFlipper:
-    - screen_amount: input de monto + botón "Siguiente".
-    - screen_category: chips de categoría + chips de cuenta + guardar.
-
-  Para evitar mantener un spinner de cuentas separado, integramos cuentas
-  como chips también, lo que hace el flujo de un solo toque.
+  Overlay del Tile – contenedor mínimo.
+  Todo el contenido se construye programáticamente en OverlayService.kt
+  para replicar el diseño del AddExpenseSheet de Flutter (Material 3,
+  3 pasos, AnimatedSize, chips, etc.).
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/overlay_root"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="20dp"
-    android:background="@android:color/white"
-    android:elevation="8dp">
-
-    <!-- Drag handle visual -->
-    <View
-        android:layout_width="40dp"
-        android:layout_height="4dp"
-        android:layout_gravity="center"
-        android:layout_marginBottom="12dp"
-        android:background="#CCCCCC" />
-
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="¿Cuánto gastaste?"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:textColor="#111111" />
-
-    <TextView
-        android:id="@+id/tvDisplay"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:padding="16dp"
-        android:text="$0"
-        android:textSize="40sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:textColor="#16A34A"
-        android:background="#F5F5F5" />
-
-    <EditText
-        android:id="@+id/etAmount"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:hint="Escribe el monto"
-        android:inputType="numberDecimal"
-        android:textSize="18sp"
-        android:gravity="center"
-        android:imeOptions="actionNext"
-        android:background="@android:drawable/editbox_background" />
-
-    <Button
-        android:id="@+id/btnNext"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginTop="12dp"
-        android:text="Siguiente"
-        android:enabled="false"
-        android:backgroundTint="#16A34A"
-        android:textColor="#FFFFFF" />
-
-    <Button
-        android:id="@+id/btnCancel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Cancelar"
-        android:background="@android:color/transparent"
-        android:textColor="#666666" />
-
-</LinearLayout>
+    android:layout_height="wrap_content" />
