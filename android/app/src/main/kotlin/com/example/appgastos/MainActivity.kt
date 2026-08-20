@@ -6,6 +6,8 @@ import android.os.Bundle
 import android.service.quicksettings.TileService
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.RenderMode
+import io.flutter.embedding.android.TransparencyMode
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
@@ -22,6 +24,11 @@ import io.flutter.plugin.common.MethodChannel
  *     después de guardar un gasto en modo transparente.
  */
 class MainActivity : FlutterActivity() {
+
+    // ── Transparencia: forzar TextureView para que soporte alpha ──
+    override fun getRenderMode(): RenderMode = RenderMode.texture
+
+    override fun getTransparencyMode(): TransparencyMode = TransparencyMode.transparent
 
     companion object {
         const val CHANNEL_NAME = "appgastos.dev/tile"
