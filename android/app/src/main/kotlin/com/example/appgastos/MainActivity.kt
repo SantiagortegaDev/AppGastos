@@ -1,6 +1,7 @@
 package com.example.appgastos
 
 import android.content.Intent
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.service.quicksettings.TileService
@@ -71,28 +72,19 @@ class MainActivity : FlutterActivity() {
         handleOpenSheetIntent(intent, fromColdStart = false)
     }
 
-    /**
-     * FlutterActivity.onCreate() llama internamente a
-     * switchLaunchThemeToNormalTheme(), el cual reemplaza el tema
-     * por NormalTheme (leído del meta-data del manifest).
-     * Overrideamos este método para que, cuando venimos del Tile,
-     * se vuelva a aplicar TransparentTheme en vez de NormalTheme.
-     */
-    override fun switchLaunchThemeToNormalTheme() {
-        if (fromTile) {
-            setTheme(R.style.TransparentTheme)
-        } else {
-            super.switchLaunchThemeToNormalTheme()
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         fromTile = intent?.getBooleanExtra(EXTRA_OPEN_EXPENSE_SHEET, false) == true
         if (fromTile) {
-            // Reducir flash: aplicar antes de super.onCreate también.
+            // Reducir flash: aplicar antes de super.onCreate.
             setTheme(R.style.TransparentTheme)
         }
         super.onCreate(savedInstanceState)
+        // FlutterActivity.onCreate() reemplaza el tema por NormalTheme internamente.
+        // Re-aplicamos transparencia a nivel de tema + ventana DESPUÉS de super.
+        if (fromTile) {
+            setTheme(R.style.TransparentTheme)
+            window.setBackgroundDrawable(ColorDrawable(0x00000000))
+        }
         handleOpenSheetIntent(intent, fromColdStart = true)
     }
 
