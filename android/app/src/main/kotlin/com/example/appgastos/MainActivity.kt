@@ -37,6 +37,7 @@ class MainActivity : FlutterActivity() {
         private const val TILE_COMPONENT_EXTRA = "android.service.quicksettings.extra.TILE_COMPONENT"
     }
 
+    private var fromTile = false
     private var pendingOpenSheet = false
     private var channel: MethodChannel? = null
 
@@ -70,11 +71,25 @@ class MainActivity : FlutterActivity() {
         handleOpenSheetIntent(intent, fromColdStart = false)
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        // Si viene del Tile, aplicar tema transparente ANTES de super.onCreate
-        // para evitar flash de color sólido.
-        val fromTile = intent?.getBooleanExtra(EXTRA_OPEN_EXPENSE_SHEET, false) == true
+    /**
+     * FlutterActivity.onCreate() llama internamente a
+     * switchLaunchThemeToNormalTheme(), el cual reemplaza el tema
+     * por NormalTheme (leído del meta-data del manifest).
+     * Overrideamos este método para que, cuando venimos del Tile,
+     * se vuelva a aplicar TransparentTheme en vez de NormalTheme.
+     */
+    override fun switchLaunchThemeToNormalTheme() {
         if (fromTile) {
+            setTheme(R.style.TransparentTheme)
+        } else {
+            super.switchLaunchThemeToNormalTheme()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        fromTile = intent?.getBooleanExtra(EXTRA_OPEN_EXPENSE_SHEET, false) == true
+        if (fromTile) {
+            // Reducir flash: aplicar antes de super.onCreate también.
             setTheme(R.style.TransparentTheme)
         }
         super.onCreate(savedInstanceState)
