@@ -1,9 +1,8 @@
 /// Pantalla principal.
 ///
-/// Header rediseñado con:
-///  - Tipografía grande para el total.
-///  - Gradiente sutil derivado del color semilla del tema.
-///  - Card de "cantidad de gastos" accesoria.
+/// Cuando la app se abre desde el Tile ([launchedFromTile] = true),
+/// muestra un Scaffold transparente y abre automáticamente el bottom sheet
+/// de captura. Al guardar o cancelar, la app se cierra.
 library;
 
 import 'package:flutter/material.dart';
@@ -22,12 +21,14 @@ class HomeScreen extends StatefulWidget {
   final ExpenseRepository repository;
   final TileChannel tileChannel;
   final SettingsService settingsService;
+  final bool launchedFromTile;
 
   const HomeScreen({
     super.key,
     required this.repository,
     required this.tileChannel,
     required this.settingsService,
+    this.launchedFromTile = false,
   });
 
   @override
@@ -37,13 +38,22 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late List<Expense> _expenses;
   late double _total;
+  bool _sheetShown = false;
 
   @override
   void initState() {
     super.initState();
     _refresh();
-    widget.tileChannel.addListener(_onTileEvent);
-    WidgetsBinding.instance.addObserver(this);
+
+    if (widget.launchedFromTile) {
+      // Modo overlay: abrir sheet inmediatamente, no observer.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_sheetShown) _openSheet(closeAppAfter: true);
+      });
+    } else {
+      widget.tileChannel.addListener(_onTileEvent);
+      WidgetsBinding.instance.addObserver(this);
+    }
   }
 
   @override
@@ -53,8 +63,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Cuando la app vuelve a foreground (después de que el overlay pudo
-  /// haber guardado un gasto), recargamos desde disco.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -73,26 +81,40 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (widget.tileChannel.pendingOpenRequest) {
       widget.tileChannel.consumeOpenRequest();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _openAddExpenseSheet();
+        if (mounted) _openSheet(closeAppAfter: false);
       });
     }
   }
 
-  Future<void> _openAddExpenseSheet() async {
+  Future<void> _openSheet({required bool closeAppAfter}) async {
+    _sheetShown = true;
     final settings = widget.settingsService.settings;
     final added = await AddExpenseSheet.show(
       context,
       widget.repository,
       settings,
+      transparentBarrier: closeAppAfter,
     );
     if (added) setState(_refresh);
+
+    if (closeAppAfter && mounted) {
+      widget.tileChannel.finishApp();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // ── Modo transparente (Tile): Scaffold vacío, fondo transparente ──
+    if (widget.launchedFromTile) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: const SizedBox.shrink(),
+      );
+    }
+
+    // ── Modo normal (launcher) ──
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final settings = widget.settingsService.settings;
 
     return ListenableBuilder(
       listenable: widget.settingsService,
@@ -115,9 +137,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
           body: CustomScrollView(
             slivers: [
-              // ───── Header con total ─────
               SliverToBoxAdapter(child: _buildHeader(theme, colorScheme)),
-              // ───── Lista ─────
               if (_expenses.isEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
@@ -126,12 +146,13 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               else
                 SliverList.builder(
                   itemCount: _expenses.length,
-                  itemBuilder: (ctx, i) => ExpenseListItem(expense: _expenses[i]),
+                  itemBuilder: (ctx, i) =>
+                      ExpenseListItem(expense: _expenses[i]),
                 ),
             ],
           ),
           floatingActionButton: FloatingActionButton.extended(
-            onPressed: _openAddExpenseSheet,
+            onPressed: () => _openSheet(closeAppAfter: false),
             icon: const Icon(Icons.add),
             label: const Text('Registrar gasto'),
           ),
@@ -146,10 +167,7 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            colorScheme.primary,
-            colorScheme.tertiary,
-          ],
+          colors: [colorScheme.primary, colorScheme.tertiary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -161,7 +179,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Pequeño título con icono.
           Row(
             children: [
               Icon(Icons.savings_outlined,
@@ -177,7 +194,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
           const SizedBox(height: 6),
-          // Total grande con animación implícita al cambiar.
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             child: Text(
@@ -198,7 +214,6 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
           const SizedBox(height: 16),
-          // Botón "Agregar acceso rápido" como FilledButton blanco.
           SizedBox(
             height: 40,
             child: FilledButton.icon(

@@ -41,11 +41,13 @@ class AddExpenseSheet extends StatefulWidget {
     ExpenseRepository repository,
     AppSettings settings, {
     Future<void> Function(Expense)? onExpenseSaved,
+    bool transparentBarrier = false,
   }) async {
     final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      barrierColor: transparentBarrier ? Colors.transparent : null,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),

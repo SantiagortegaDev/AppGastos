@@ -2,14 +2,11 @@
 ///
 /// Flujo:
 /// 1. El usuario toca el Tile en el panel de ajustes rápidos.
-/// 2. `ExpenseTileService.kt` construye un `Intent` con el extra
-///    `open_expense_sheet = true` y lanza `MainActivity`.
-/// 3. `MainActivity.kt` reenvía ese evento a través de este canal usando
-///    `method.invokeMethod("openExpenseSheet")` (caso app en foreground)
-///    o almacena el flag para que Flutter lo consulte al arrancar
-///    (caso app en cold-start) usando `getInitialAction()`.
-///
-/// Usamos un `ChangeNotifier` para que la UI pueda suscribirse a cambios.
+/// 2. `ExpenseTileService.kt` lanza `MainActivity` con tema transparente
+///    y el extra `open_expense_sheet = true`.
+/// 3. `MainActivity.kt` reenvía ese evento a través de este canal.
+/// 4. Flutter muestra el bottom sheet de captura con fondo transparente
+///    y cierra la app al terminar.
 library;
 
 import 'package:flutter/foundation.dart';
@@ -33,7 +30,10 @@ class TileChannel extends ChangeNotifier {
   bool get pendingOpenRequest => _pendingOpenRequest;
 
   /// Inicializa el canal. Debe llamarse una sola vez desde `main()`.
-  void init() {
+  ///
+  /// Devuelve `true` si la app fue abierta desde el Tile (cold-start).
+  /// En ese caso, el flag `pendingOpenRequest` ya queda activado.
+  Future<bool> init() async {
     // 1) Handler para eventos en vivo (app ya en foreground).
     _channel.setMethodCallHandler((call) async {
       if (call.method == _kOpenExpenseSheet) {
@@ -43,13 +43,12 @@ class TileChannel extends ChangeNotifier {
     });
 
     // 2) Consulta el "initial intent" (caso cold-start).
-    //    MainActivity guarda el extra y lo responde aquí.
-    _channel.invokeMethod<bool>('getInitialAction').then((opened) {
-      if (opened == true) {
-        _pendingOpenRequest = true;
-        notifyListeners();
-      }
-    });
+    final opened = await _channel.invokeMethod<bool>('getInitialAction');
+    if (opened == true) {
+      _pendingOpenRequest = true;
+      notifyListeners();
+    }
+    return opened == true;
   }
 
   /// Marca el pedido como consumido (ya abrimos el bottom sheet).
@@ -60,13 +59,21 @@ class TileChannel extends ChangeNotifier {
     }
   }
 
-  /// Solicita el estado "listening" del Tile (útil para refrescar el
-  /// label/icono si cambia algo). Llama al lado Kotlin.
+  /// Solicita cerrar la app (desde modo transparente/Tile).
+  Future<void> finishApp() async {
+    try {
+      await _channel.invokeMethod<void>('finishApp');
+    } on PlatformException {
+      SystemNavigator.pop();
+    }
+  }
+
+  /// Solicita el estado "listening" del Tile.
   Future<void> requestListeningState() async {
     try {
       await _channel.invokeMethod<void>('requestListeningState');
     } on PlatformException {
-      // Ignoramos errores — el Tile seguirá funcionando.
+      // Ignoramos errores.
     }
   }
 }

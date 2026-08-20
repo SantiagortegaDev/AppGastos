@@ -1,4 +1,4 @@
-/// Pantalla de ajustes: tema, color, cuentas, webhook, overlay.
+/// Pantalla de ajustes: tema, color, cuentas, webhook.
 library;
 
 import 'package:flutter/material.dart';
@@ -168,33 +168,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Acceso rápido',
                 icon: Icons.dashboard_customize_outlined,
                 children: [
-                  SwitchListTile(
-                    title: const Text('Modal sobre otras apps'),
-                    subtitle: const Text(
-                        'Al tocar el Tile, mostrar el formulario sobre la app '
-                        'que tengas abierta en vez de abrir AppGastos.'),
-                    value: current.overlayEnabled,
-                    onChanged: (val) async {
-                      if (val) {
-                        // Necesitamos permiso SYSTEM_ALERT_WINDOW.
-                        const platform = MethodChannel('appgastos.dev/tile');
-                        final granted = await platform
-                            .invokeMethod<bool>('requestOverlayPermission');
-                        if (granted == true) {
-                          s.setOverlayEnabled(true);
-                        } else if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Permiso denegado. Actívalo en Ajustes del sistema.'),
-                            ),
-                          );
-                        }
-                      } else {
-                        s.setOverlayEnabled(false);
-                      }
-                    },
-                  ),
                   ListTile(
                     leading: const Icon(Icons.dashboard_customize),
                     title: const Text('Agregar tile al panel'),
@@ -367,8 +340,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Formato del webhook'),
         content: const SingleChildScrollView(
           child: Text(
-            'Cada vez que registras un gasto (desde la app o desde el overlay '
-            'del Tile), se hace un HTTP POST a la URL configurada con este JSON:\n\n'
+            'Cada vez que registras un gasto (desde la app o desde el Tile),
+            'se hace un HTTP POST a la URL configurada con este JSON:\n\n'
             '{\n'
             '  "event": "expense.created",\n'
             '  "id": "1712345678-12345",\n'

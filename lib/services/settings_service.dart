@@ -37,7 +37,6 @@ class SettingsService extends ChangeNotifier {
               .toList(),
           defaultAccountId: json['defaultAccountId'] as String? ?? 'acc-cash',
           webhookUrl: json['webhookUrl'] as String? ?? '',
-          overlayEnabled: json['overlayEnabled'] as bool? ?? false,
         );
       } catch (_) {
         // JSON corrupto — usamos defaults.
@@ -54,7 +53,6 @@ class SettingsService extends ChangeNotifier {
       'accounts': _settings.accounts.map((a) => a.toJson()).toList(),
       'defaultAccountId': _settings.defaultAccountId,
       'webhookUrl': _settings.webhookUrl,
-      'overlayEnabled': _settings.overlayEnabled,
     }));
   }
 
@@ -66,9 +64,6 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> setWebhookUrl(String url) =>
       update(_settings.copyWith(webhookUrl: url));
-
-  Future<void> setOverlayEnabled(bool enabled) =>
-      update(_settings.copyWith(overlayEnabled: enabled));
 
   Future<void> addAccount(Account account) async {
     final next = [..._settings.accounts, account];
