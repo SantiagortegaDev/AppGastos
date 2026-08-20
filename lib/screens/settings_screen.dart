@@ -340,7 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Formato del webhook'),
         content: const SingleChildScrollView(
           child: Text(
-            'Cada vez que registras un gasto (desde la app o desde el Tile),
+            'Cada vez que registras un gasto (desde la app o desde el Tile), '
             'se hace un HTTP POST a la URL configurada con este JSON:\n\n'
             '{\n'
             '  "event": "expense.created",\n'

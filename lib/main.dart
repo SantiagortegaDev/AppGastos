@@ -56,12 +56,12 @@ class AppGastosApp extends StatelessWidget {
         return MaterialApp(
           title: 'AppGastos',
           debugShowCheckedModeBanner: false,
-          themeMode: s.flutterThemeMode,
+          themeMode: s.settings.flutterThemeMode,
           theme: ThemeData(
             useMaterial3: true,
             scaffoldBackgroundColor: bgColor,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: s.seedColor,
+              seedColor: s.settings.seedColor,
               brightness: Brightness.light,
             ),
           ),
@@ -69,7 +69,7 @@ class AppGastosApp extends StatelessWidget {
             useMaterial3: true,
             scaffoldBackgroundColor: bgColor,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: s.seedColor,
+              seedColor: s.settings.seedColor,
               brightness: Brightness.dark,
             ),
           ),
