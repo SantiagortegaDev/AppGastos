@@ -478,41 +478,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: const SingleChildScrollView(
           child: Text(
             'Cada vez que registrás un gasto o ingreso, se hace un HTTP POST '
-            'a la URL configurada con este JSON:
-
-'
-            '{
-'
-            '  "event": "expense.created",
-'
-            '  "id": "1712345678-12345",
-'
-            '  "amount": 15000.0,
-'
-            '  "type": "gasto",
-'
-            '  "category": "comida",
-'
-            '  "account": {
-'
-            '    "id": "acc-cash",
-'
-            '    "name": "Efectivo",
-'
-            '    "color": 4283349034,
-'
-            '    "balance": 50000
-'
-            '  },
-'
-            '  "date": "2025-01-30T12:34:56.789Z",
-'
-            '  "comment": "almuerzo con el equipo",
-'
-            '  "app": "AppGastos",
-'
-            '  "version": 1
-'
+            'a la URL configurada con este JSON:\n\n'
+            '{\n'
+            '  "event": "expense.created",\n'
+            '  "id": "1712345678-12345",\n'
+            '  "amount": 15000.0,\n'
+            '  "type": "gasto",\n'
+            '  "category": "comida",\n'
+            '  "account": {\n'
+            '    "id": "acc-cash",\n'
+            '    "name": "Efectivo",\n'
+            '    "color": 4283349034,\n'
+            '    "balance": 50000\n'
+            '  },\n'
+            '  "date": "2025-01-30T12:34:56.789Z",\n'
+            '  "comment": "almuerzo con el equipo",\n'
+            '  "app": "AppGastos",\n'
+            '  "version": 1\n'
             '}',
           ),
         ),
