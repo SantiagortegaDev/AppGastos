@@ -1,4 +1,4 @@
-/// Repositorio de registros con persistencia en `shared_preferences`.
+/// Repositorio de registros con filtros.
 library;
 
 import 'dart:convert';
@@ -7,7 +7,6 @@ import '../models/expense.dart';
 
 class ExpenseRepository {
   static const String _storageKey = 'appgastos.expenses.v1';
-
   late final SharedPreferences _prefs;
   final List<Expense> _expenses = [];
 
@@ -17,13 +16,11 @@ class ExpenseRepository {
   }
 
   void _loadFromDisk() {
-    final String? raw = _prefs.getString(_storageKey);
+    final raw = _prefs.getString(_storageKey);
     if (raw != null && raw.isNotEmpty) {
       try {
-        final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
-        _expenses.addAll(
-          decoded.map((e) => Expense.fromJson(e as Map<String, dynamic>)),
-        );
+        final decoded = jsonDecode(raw) as List<dynamic>;
+        _expenses.addAll(decoded.map((e) => Expense.fromJson(e as Map<String, dynamic>)));
       } catch (_) {}
     }
   }
@@ -39,19 +36,63 @@ class ExpenseRepository {
     return List.unmodifiable(sorted);
   }
 
-  double get totalExpenses =>
-      _expenses
-          .where((e) => e.type == TransactionType.gasto)
-          .fold(0.0, (sum, e) => sum + e.amount);
-
-  double get totalIncome =>
-      _expenses
-          .where((e) => e.type == TransactionType.ingreso)
-          .fold(0.0, (sum, e) => sum + e.amount);
-
+  double get totalExpenses => _expenses.where((e) => e.type == TransactionType.gasto).fold(0.0, (s, e) => s + e.amount);
+  double get totalIncome => _expenses.where((e) => e.type == TransactionType.ingreso).fold(0.0, (s, e) => s + e.amount);
   double get balance => totalIncome - totalExpenses;
-
   int get count => _expenses.length;
+
+  /// Filtrar registros con opciones.
+  List<Expense> filter({
+    String? query,
+    TransactionType? type,
+    String? categoryId,
+    String? accountId,
+    DateTime? from,
+    DateTime? to,
+  }) {
+    var list = all;
+    if (type != null) list = list.where((e) => e.type == type).toList();
+    if (categoryId != null) list = list.where((e) => e.category.name == categoryId).toList();
+    if (accountId != null) list = list.where((e) => e.account.id == accountId).toList();
+    if (from != null) list = list.where((e) => e.date.isAfter(from)).toList();
+    if (to != null) list = list.where((e) => e.date.isBefore(to)).toList();
+    if (query != null && query.isNotEmpty) {
+      final q = query.toLowerCase();
+      list = list.where((e) =>
+        e.comment.toLowerCase().contains(q) ||
+        e.category.label.toLowerCase().contains(q) ||
+        e.account.name.toLowerCase().contains(q) ||
+        e.amount.toString().contains(q)).toList();
+    }
+    return list;
+  }
+
+  /// Registros agrupados por fecha (para gráficos).
+  Map<String, double> dailyTotals({DateTime? from, DateTime? to, TransactionType? type}) {
+    var list = _expenses;
+    if (type != null) list = list.where((e) => e.type == type).toList();
+    if (from != null) list = list.where((e) => e.date.isAfter(from)).toList();
+    if (to != null) list = list.where((e) => e.date.isBefore(to)).toList();
+    final map = <String, double>{};
+    for (final e in list) {
+      final key = '${e.date.year}-${e.date.month.toString().padLeft(2, '0')}-${e.date.day.toString().padLeft(2, '0')}';
+      map[key] = (map[key] ?? 0) + e.amount;
+    }
+    return map;
+  }
+
+  /// Totales por categoría.
+  Map<String, double> categoryTotals({TransactionType? type, DateTime? from, DateTime? to}) {
+    var list = _expenses;
+    if (type != null) list = list.where((e) => e.type == type).toList();
+    if (from != null) list = list.where((e) => e.date.isAfter(from)).toList();
+    if (to != null) list = list.where((e) => e.date.isBefore(to)).toList();
+    final map = <String, double>{};
+    for (final e in list) {
+      map[e.category.name] = (map[e.category.name] ?? 0) + e.amount;
+    }
+    return map;
+  }
 
   Future<void> add(Expense expense) async {
     _expenses.add(expense);
@@ -64,7 +105,6 @@ class ExpenseRepository {
   }
 
   Future<void> _persist() async {
-    final encoded = jsonEncode(_expenses.map((e) => e.toJson()).toList());
-    await _prefs.setString(_storageKey, encoded);
+    await _prefs.setString(_storageKey, jsonEncode(_expenses.map((e) => e.toJson()).toList()));
   }
 }

@@ -2,45 +2,41 @@
 library;
 
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-
 import 'account.dart';
-
-// ── Tipo de transacción ──
 
 enum TransactionType {
   gasto('Gasto', Icons.arrow_downward),
   ingreso('Ingreso', Icons.arrow_upward);
-
   final String label;
   final IconData icon;
   const TransactionType(this.label, this.icon);
-
   static TransactionType fromName(String name) =>
       values.firstWhere((t) => t.name == name, orElse: () => TransactionType.gasto);
 }
 
-// ── Categorías ──
-
+/// Colores mejorados por categoría.
 enum ExpenseCategory {
   // Gastos
-  comida('Comida', Icons.restaurant, TransactionType.gasto),
-  transporte('Transporte', Icons.directions_bus, TransactionType.gasto),
-  compras('Compras', Icons.shopping_bag, TransactionType.gasto),
-  servicios('Servicios', Icons.receipt_long, TransactionType.gasto),
-  otro('Otro', Icons.category, TransactionType.gasto),
+  comida('Comida', Icons.restaurant, TransactionType.gasto, 0xFFF97316),
+  transporte('Transporte', Icons.directions_bus, TransactionType.gasto, 0xFF3B82F6),
+  compras('Compras', Icons.shopping_bag, TransactionType.gasto, 0xFFA855F7),
+  servicios('Servicios', Icons.receipt_long, TransactionType.gasto, 0xFF14B8A6),
+  otro('Otro', Icons.more_horiz, TransactionType.gasto, 0xFF6B7280),
   // Ingresos
-  salario('Salario', Icons.work, TransactionType.ingreso),
-  venta('Venta', Icons.storefront, TransactionType.ingreso),
-  regalo('Regalo', Icons.card_giftcard, TransactionType.ingreso),
-  inversion('Inversión', Icons.trending_up, TransactionType.ingreso),
-  otroIngreso('Otro ingreso', Icons.category, TransactionType.ingreso);
+  salario('Salario', Icons.work, TransactionType.ingreso, 0xFF22C55E),
+  venta('Venta', Icons.storefront, TransactionType.ingreso, 0xFF06B6D4),
+  regalo('Regalo', Icons.card_giftcard, TransactionType.ingreso, 0xFFEC4899),
+  inversion('Inversión', Icons.trending_up, TransactionType.ingreso, 0xFF6366F1),
+  otroIngreso('Otro ingreso', Icons.more_horiz, TransactionType.ingreso, 0xFF6B7280);
 
   final String label;
   final IconData icon;
   final TransactionType type;
-  const ExpenseCategory(this.label, this.icon, this.type);
+  final int colorValue;
+  const ExpenseCategory(this.label, this.icon, this.type, this.colorValue);
+
+  Color get color => Color(colorValue);
 
   static ExpenseCategory fromName(String name) =>
       values.firstWhere((c) => c.name == name, orElse: () => ExpenseCategory.otro);
@@ -48,8 +44,6 @@ enum ExpenseCategory {
   static List<ExpenseCategory> forType(TransactionType type) =>
       values.where((c) => c.type == type).toList();
 }
-
-// ── Registro (gasto / ingreso) ──
 
 class Expense {
   final String id;
