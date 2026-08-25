@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import '../models/expense.dart';
 import '../models/app_settings.dart';
+import '../models/currency.dart';
 import '../utils/formatters.dart';
 
 class ExpenseListItem extends StatelessWidget {

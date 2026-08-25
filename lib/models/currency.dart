@@ -33,4 +33,4 @@ const List<CurrencyInfo> kCurrencies = [
   CurrencyInfo(code: 'UYU', symbol: r'$', locale: 'es_UY', name: 'Peso uruguayo', decimals: 0),
 ];
 
-const CurrencyInfo kDefaultCurrency = kCurrencies[0]; // COP
+final CurrencyInfo kDefaultCurrency = kCurrencies[0]; // COP
