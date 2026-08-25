@@ -1,25 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Tema de lanzamiento (splash) usado por el manifest.
-         NormalTheme toma control cuando Flutter carga. -->
+    <!-- Tema de lanzamiento (splash) -->
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">@android:color/white</item>
     </style>
 
-    <!-- Tema normal (launcher) -->
+    <!-- Tema normal -->
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
-    </style>
-
-    <!-- Tema transparente: se aplica cuando la app se abre desde el Tile.
-         Da el efecto visual de overlay sin necesitar SYSTEM_ALERT_WINDOW. -->
-    <style name="TransparentTheme" parent="@android:style/Theme.Translucent.NoTitleBar">
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:colorBackgroundCacheHint">@null</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:backgroundDimEnabled">false</item>
-        <item name="android:windowTranslucentStatus">true</item>
-        <item name="android:windowTranslucentNavigation">true</item>
     </style>
 </resources>

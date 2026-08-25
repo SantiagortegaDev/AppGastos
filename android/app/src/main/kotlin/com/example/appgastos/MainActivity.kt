@@ -1,45 +1,33 @@
 package com.example.appgastos
 
 import android.content.Intent
-import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.service.quicksettings.TileService
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.android.RenderMode
-import io.flutter.embedding.android.TransparencyMode
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 /**
- * Activity principal de la app Flutter.
+ * Activity principal.
  *
- * Responsabilidades:
- *  1. Detectar intent con `open_expense_sheet = true` (Tile → app).
- *     Si viene del Tile, aplica tema transparente para dar efecto overlay.
- *  2. Reenviar ese evento a Flutter via MethodChannel.
- *  3. Exponer `requestAddTile` (ACTION_QUICK_SETTINGS_ADD_TILE, API 33+).
- *  4. Exponer `requestListeningState` para refrescar el Tile.
- *  5. Exponer `finishApp` para que Flutter cierre la actividad
- *     después de guardar un gasto en modo transparente.
+ * - Detecta intent con extras del Tile (open_expense_sheet + transaction_type).
+ * - Reenvía el evento a Flutter via MethodChannel.
+ * - Expone requestAddTile (API 33+) y finishApp.
  */
 class MainActivity : FlutterActivity() {
 
-    // ── Transparencia: forzar TextureView para que soporte alpha ──
-    override fun getRenderMode(): RenderMode = RenderMode.texture
-
-    override fun getTransparencyMode(): TransparencyMode = TransparencyMode.transparent
-
     companion object {
         const val CHANNEL_NAME = "appgastos.dev/tile"
-        const val EXTRA_OPEN_EXPENSE_SHEET = "open_expense_sheet"
+        const val EXTRA_OPEN_SHEET = "open_expense_sheet"
+        const val EXTRA_TX_TYPE = "transaction_type"
         private const val ACTION_QS_ADD_TILE = "android.service.quicksettings.action.QS_ADD_TILE"
         private const val TILE_COMPONENT_EXTRA = "android.service.quicksettings.extra.TILE_COMPONENT"
     }
 
-    private var fromTile = false
     private var pendingOpenSheet = false
+    private var pendingType: String? = null
     private var channel: MethodChannel? = null
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -49,8 +37,13 @@ class MainActivity : FlutterActivity() {
         channel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "getInitialAction" -> {
-                    result.success(pendingOpenSheet)
+                    val map = mapOf(
+                        "open" to pendingOpenSheet,
+                        "type" to (pendingType ?: "")
+                    )
                     pendingOpenSheet = false
+                    pendingType = null
+                    result.success(map)
                 }
                 "requestAddTile" -> result.success(tryRequestAddTile())
                 "requestListeningState" -> {
@@ -69,34 +62,27 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleOpenSheetIntent(intent, fromColdStart = false)
+        handleSheetIntent(intent, coldStart = false)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        fromTile = intent?.getBooleanExtra(EXTRA_OPEN_EXPENSE_SHEET, false) == true
-        if (fromTile) {
-            // Reducir flash: aplicar antes de super.onCreate.
-            setTheme(R.style.TransparentTheme)
-        }
         super.onCreate(savedInstanceState)
-        // FlutterActivity.onCreate() reemplaza el tema por NormalTheme internamente.
-        // Re-aplicamos transparencia a nivel de tema + ventana DESPUÉS de super.
-        if (fromTile) {
-            setTheme(R.style.TransparentTheme)
-            window.setBackgroundDrawable(ColorDrawable(0x00000000))
-        }
-        handleOpenSheetIntent(intent, fromColdStart = true)
+        handleSheetIntent(intent, coldStart = true)
     }
 
-    private fun handleOpenSheetIntent(intent: Intent?, fromColdStart: Boolean) {
-        val shouldOpen = intent?.getBooleanExtra(EXTRA_OPEN_EXPENSE_SHEET, false) == true
+    private fun handleSheetIntent(intent: Intent?, coldStart: Boolean) {
+        val shouldOpen = intent?.getBooleanExtra(EXTRA_OPEN_SHEET, false) == true
         if (!shouldOpen) return
-        if (fromColdStart) {
+
+        val type = intent?.getStringExtra(EXTRA_TX_TYPE)  // "gasto", "ingreso" o null
+        if (coldStart) {
             pendingOpenSheet = true
+            pendingType = type
         } else {
-            channel?.invokeMethod("openExpenseSheet", null)
+            channel?.invokeMethod("openExpenseSheet", type)
         }
-        intent?.removeExtra(EXTRA_OPEN_EXPENSE_SHEET)
+        intent?.removeExtra(EXTRA_OPEN_SHEET)
+        intent?.removeExtra(EXTRA_TX_TYPE)
     }
 
     private fun tryRequestAddTile(): Boolean {

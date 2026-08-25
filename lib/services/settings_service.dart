@@ -1,15 +1,10 @@
 /// Servicio de configuración persistida.
-///
-/// Expone un [ChangeNotifier] para que la UI reaccione a cambios
-/// de tema, color, cuentas, webhook, etc.
 library;
 
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/account.dart';
 import '../models/app_settings.dart';
 
@@ -35,12 +30,12 @@ class SettingsService extends ChangeNotifier {
           accounts: (json['accounts'] as List<dynamic>)
               .map((a) => Account.fromJson(a as Map<String, dynamic>))
               .toList(),
-          defaultAccountId: json['defaultAccountId'] as String? ?? 'acc-cash',
+          defaultAccountId:
+              json['defaultAccountId'] as String? ?? 'acc-cash',
           webhookUrl: json['webhookUrl'] as String? ?? '',
+          askForComment: json['askForComment'] as bool? ?? true,
         );
-      } catch (_) {
-        // JSON corrupto — usamos defaults.
-      }
+      } catch (_) {}
     }
   }
 
@@ -53,8 +48,11 @@ class SettingsService extends ChangeNotifier {
       'accounts': _settings.accounts.map((a) => a.toJson()).toList(),
       'defaultAccountId': _settings.defaultAccountId,
       'webhookUrl': _settings.webhookUrl,
+      'askForComment': _settings.askForComment,
     }));
   }
+
+  // ── Tema y color ──
 
   Future<void> setThemeMode(AppThemeMode mode) =>
       update(_settings.copyWith(themeMode: mode));
@@ -62,8 +60,17 @@ class SettingsService extends ChangeNotifier {
   Future<void> setSeedColor(Color color) =>
       update(_settings.copyWith(seedColor: color));
 
+  // ── Webhook ──
+
   Future<void> setWebhookUrl(String url) =>
       update(_settings.copyWith(webhookUrl: url));
+
+  // ── Comentario opcional ──
+
+  Future<void> setAskForComment(bool value) =>
+      update(_settings.copyWith(askForComment: value));
+
+  // ── Billeteras ──
 
   Future<void> addAccount(Account account) async {
     final next = [..._settings.accounts, account];
@@ -87,4 +94,17 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> setDefaultAccount(String id) =>
       update(_settings.copyWith(defaultAccountId: id));
+
+  Future<void> updateAccount(String id,
+      {String? name, Color? color, double? balance}) async {
+    final updated = _settings.accounts.map((a) {
+      if (a.id != id) return a;
+      return a.copyWith(
+        name: name,
+        colorValue: color?.value,
+        balance: balance,
+      );
+    }).toList();
+    await update(_settings.copyWith(accounts: updated));
+  }
 }

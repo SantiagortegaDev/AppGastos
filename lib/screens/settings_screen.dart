@@ -1,4 +1,4 @@
-/// Pantalla de ajustes: tema, color, cuentas, webhook.
+/// Pantalla de ajustes.
 library;
 
 import 'package:flutter/material.dart';
@@ -52,7 +52,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Apariencia',
                 icon: Icons.palette_outlined,
                 children: [
-                  // Modo tema
                   ListTile(
                     leading: const Icon(Icons.brightness_6_outlined),
                     title: const Text('Tema'),
@@ -73,7 +72,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const Divider(height: 1),
-                  // Paleta de colores
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text('Color de la app',
@@ -85,7 +83,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       spacing: 12,
                       runSpacing: 12,
                       children: kColorPalettes.map((p) {
-                        final selected = current.seedColor.value == p.color.value;
+                        final selected =
+                            current.seedColor.value == p.color.value;
                         return GestureDetector(
                           onTap: () => s.setSeedColor(p.color),
                           child: AnimatedContainer(
@@ -119,9 +118,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 16),
 
-              // ─────── Cuentas ───────
+              // ─────── Billeteras ───────
               SectionCard(
-                title: 'Cuentas',
+                title: 'Billeteras',
                 icon: Icons.account_balance_wallet_outlined,
                 children: [
                   ...current.accounts.map((acc) {
@@ -132,6 +131,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: const SizedBox.shrink(),
                       ),
                       title: Text(acc.name),
+                      subtitle: Text(
+                        'Balance: ${acc.balance.toStringAsFixed(0)}',
+                        style: theme.textTheme.bodySmall,
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -140,6 +143,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               label: const Text('Default'),
                               visualDensity: VisualDensity.compact,
                             ),
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 20),
+                            tooltip: 'Editar',
+                            onPressed: () =>
+                                _showEditAccountDialog(context, s, acc),
+                          ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline, size: 20),
                             onPressed: () => s.removeAccount(acc.id),
@@ -152,12 +161,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (current.accounts.isEmpty)
                     const Padding(
                       padding: EdgeInsets.all(16),
-                      child: Text('No tienes cuentas. Agrega una abajo.'),
+                      child: Text('No tenés billeteras. Agregá una abajo.'),
                     ),
                   ListTile(
                     leading: const Icon(Icons.add),
-                    title: const Text('Agregar cuenta'),
+                    title: const Text('Agregar billetera'),
                     onTap: () => _showAddAccountDialog(context, s),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // ─────── Registro ───────
+              SectionCard(
+                title: 'Registro',
+                icon: Icons.edit_note_outlined,
+                children: [
+                  SwitchListTile(
+                    secondary: const Icon(Icons.comment_outlined),
+                    title: const Text('Preguntar comentario'),
+                    subtitle: const Text(
+                        'Al registrar, pregunta un comentario opcional.'),
+                    value: current.askForComment,
+                    onChanged: (v) => s.setAskForComment(v),
                   ),
                 ],
               ),
@@ -170,7 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.dashboard_customize),
-                    title: const Text('Agregar tile al panel'),
+                    title: const Text('Agregar tiles al panel'),
                     subtitle: const Text(
                         'Abre el asistente del sistema (Android 13+).'),
                     onTap: () {
@@ -224,9 +250,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               );
                               return;
                             }
-                            // Disparamos un payload de prueba reutilizando el servicio.
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Enviando prueba a $url')),
+                              SnackBar(
+                                  content: Text('Enviando prueba a $url')),
                             );
                           },
                         ),
@@ -237,8 +263,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     leading: const Icon(Icons.code),
                     title: const Text('Formato del payload'),
                     subtitle: const Text(
-                        'POST application/json con: event, id, amount, '
-                        'category, account, date, app, version'),
+                        'POST JSON con: event, id, amount, type, category, account, date, comment, app, version'),
                     onTap: () => _showPayloadHelp(context),
                   ),
                 ],
@@ -252,7 +277,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   ListTile(
                     title: const Text('AppGastos'),
-                    subtitle: const Text('v1.0.0'),
+                    subtitle: const Text('v1.1.0'),
                     leading: const Icon(Icons.savings_outlined),
                   ),
                 ],
@@ -264,8 +289,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // ── Dialog: agregar billetera ──
+
   void _showAddAccountDialog(BuildContext context, SettingsService s) {
     final nameCtrl = TextEditingController();
+    final balanceCtrl = TextEditingController(text: '0');
     Color selectedColor = Colors.blue;
     showDialog(
       context: context,
@@ -273,7 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return StatefulBuilder(
           builder: (ctx, setSt) {
             return AlertDialog(
-              title: const Text('Nueva cuenta'),
+              title: const Text('Nueva billetera'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -284,6 +312,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       border: OutlineInputBorder(),
                     ),
                     autofocus: true,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: balanceCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true, signed: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Balance inicial',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.attach_money),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Wrap(
@@ -319,8 +358,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onPressed: () {
                     final name = nameCtrl.text.trim();
                     if (name.isEmpty) return;
+                    final bal =
+                        double.tryParse(balanceCtrl.text) ?? 0;
                     s.addAccount(Account.create(
-                        name: name, color: selectedColor));
+                        name: name,
+                        color: selectedColor,
+                        balance: bal));
                     Navigator.of(ctx).pop();
                   },
                   child: const Text('Agregar'),
@@ -333,6 +376,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // ── Dialog: editar billetera (nombre, color, balance) ──
+
+  void _showEditAccountDialog(
+      BuildContext context, SettingsService s, Account acc) {
+    final nameCtrl = TextEditingController(text: acc.name);
+    final balanceCtrl =
+        TextEditingController(text: acc.balance.toStringAsFixed(0));
+    Color selectedColor = acc.color;
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSt) {
+            return AlertDialog(
+              title: const Text('Editar billetera'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: balanceCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true, signed: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Balance',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.attach_money),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Color', style: Theme.of(ctx).textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: kColorPalettes.map((p) {
+                      final sel = p.color.value == selectedColor.value;
+                      return GestureDetector(
+                        onTap: () => setSt(() => selectedColor = p.color),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: p.color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: sel ? Colors.black : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final name = nameCtrl.text.trim();
+                    if (name.isEmpty) return;
+                    final bal =
+                        double.tryParse(balanceCtrl.text) ?? acc.balance;
+                    s.updateAccount(
+                      acc.id,
+                      name: name,
+                      color: selectedColor,
+                      balance: bal,
+                    );
+                    Navigator.of(ctx).pop();
+                  },
+                  child: const Text('Guardar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ── Dialog: ayuda payload webhook ──
+
   void _showPayloadHelp(BuildContext context) {
     showDialog(
       context: context,
@@ -340,21 +477,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Formato del webhook'),
         content: const SingleChildScrollView(
           child: Text(
-            'Cada vez que registras un gasto (desde la app o desde el Tile), '
-            'se hace un HTTP POST a la URL configurada con este JSON:\n\n'
-            '{\n'
-            '  "event": "expense.created",\n'
-            '  "id": "1712345678-12345",\n'
-            '  "amount": 15000.0,\n'
-            '  "category": "comida",\n'
-            '  "account": {\n'
-            '    "id": "acc-cash",\n'
-            '    "name": "Efectivo",\n'
-            '    "color": 4283349034\n'
-            '  },\n'
-            '  "date": "2025-01-30T12:34:56.789Z",\n'
-            '  "app": "AppGastos",\n'
-            '  "version": 1\n'
+            'Cada vez que registrás un gasto o ingreso, se hace un HTTP POST '
+            'a la URL configurada con este JSON:
+
+'
+            '{
+'
+            '  "event": "expense.created",
+'
+            '  "id": "1712345678-12345",
+'
+            '  "amount": 15000.0,
+'
+            '  "type": "gasto",
+'
+            '  "category": "comida",
+'
+            '  "account": {
+'
+            '    "id": "acc-cash",
+'
+            '    "name": "Efectivo",
+'
+            '    "color": 4283349034,
+'
+            '    "balance": 50000
+'
+            '  },
+'
+            '  "date": "2025-01-30T12:34:56.789Z",
+'
+            '  "comment": "almuerzo con el equipo",
+'
+            '  "app": "AppGastos",
+'
+            '  "version": 1
+'
             '}',
           ),
         ),

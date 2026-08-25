@@ -1,11 +1,4 @@
-/// Modelo de datos para un gasto registrado.
-///
-/// Cada gasto contiene:
-/// - [amount]: monto numérico (siempre positivo).
-/// - [category]: categoría predefinida (ver [ExpenseCategory]).
-/// - [account]: cuenta desde la que se hizo el gasto (efectivo, banco, etc.).
-/// - [date]: momento en el que se registró.
-/// - [id]: identificador único.
+/// Modelo de datos para un registro (gasto o ingreso).
 library;
 
 import 'dart:math' as math;
@@ -14,21 +7,49 @@ import 'package:flutter/material.dart';
 
 import 'account.dart';
 
-/// Categorías soportadas por la app.
-enum ExpenseCategory {
-  comida('Comida', Icons.restaurant),
-  transporte('Transporte', Icons.directions_bus),
-  compras('Compras', Icons.shopping_bag),
-  servicios('Servicios', Icons.receipt_long),
-  otro('Otro', Icons.category);
+// ── Tipo de transacción ──
+
+enum TransactionType {
+  gasto('Gasto', Icons.arrow_downward),
+  ingreso('Ingreso', Icons.arrow_upward);
 
   final String label;
   final IconData icon;
-  const ExpenseCategory(this.label, this.icon);
+  const TransactionType(this.label, this.icon);
+
+  static TransactionType fromName(String name) =>
+      values.firstWhere((t) => t.name == name, orElse: () => TransactionType.gasto);
+}
+
+// ── Categorías ──
+
+enum ExpenseCategory {
+  // Gastos
+  comida('Comida', Icons.restaurant, TransactionType.gasto),
+  transporte('Transporte', Icons.directions_bus, TransactionType.gasto),
+  compras('Compras', Icons.shopping_bag, TransactionType.gasto),
+  servicios('Servicios', Icons.receipt_long, TransactionType.gasto),
+  otro('Otro', Icons.category, TransactionType.gasto),
+  // Ingresos
+  salario('Salario', Icons.work, TransactionType.ingreso),
+  venta('Venta', Icons.storefront, TransactionType.ingreso),
+  regalo('Regalo', Icons.card_giftcard, TransactionType.ingreso),
+  inversion('Inversión', Icons.trending_up, TransactionType.ingreso),
+  otroIngreso('Otro ingreso', Icons.category, TransactionType.ingreso);
+
+  final String label;
+  final IconData icon;
+  final TransactionType type;
+  const ExpenseCategory(this.label, this.icon, this.type);
 
   static ExpenseCategory fromName(String name) =>
       values.firstWhere((c) => c.name == name, orElse: () => ExpenseCategory.otro);
+
+  static List<ExpenseCategory> forType(TransactionType type) =>
+      values.where((c) => c.type == type).toList();
 }
+
+// ── Registro (gasto / ingreso) ──
 
 class Expense {
   final String id;
@@ -36,19 +57,25 @@ class Expense {
   final ExpenseCategory category;
   final Account account;
   final DateTime date;
+  final TransactionType type;
+  final String comment;
 
-  Expense({
+  const Expense({
     required this.id,
     required this.amount,
     required this.category,
     required this.account,
     required this.date,
+    this.type = TransactionType.gasto,
+    this.comment = '',
   });
 
   factory Expense.create({
     required double amount,
     required ExpenseCategory category,
     required Account account,
+    TransactionType type = TransactionType.gasto,
+    String comment = '',
     DateTime? date,
   }) {
     assert(amount > 0, 'El monto debe ser mayor a 0');
@@ -58,6 +85,8 @@ class Expense {
       category: category,
       account: account,
       date: date ?? DateTime.now(),
+      type: type,
+      comment: comment,
     );
   }
 
@@ -67,6 +96,8 @@ class Expense {
         'category': category.name,
         'account': account.toJson(),
         'date': date.toIso8601String(),
+        'type': type.name,
+        if (comment.isNotEmpty) 'comment': comment,
       };
 
   factory Expense.fromJson(Map<String, dynamic> json) => Expense(
@@ -75,6 +106,10 @@ class Expense {
         category: ExpenseCategory.fromName(json['category'] as String),
         account: Account.fromJson(json['account'] as Map<String, dynamic>),
         date: DateTime.parse(json['date'] as String),
+        type: json['type'] != null
+            ? TransactionType.fromName(json['type'] as String)
+            : TransactionType.gasto,
+        comment: (json['comment'] as String?) ?? '',
       );
 }
 

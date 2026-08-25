@@ -1,8 +1,7 @@
-/// Ítem de la lista de gastos.
+/// Ítem de la lista de registros (gastos e ingresos).
 library;
 
 import 'package:flutter/material.dart';
-
 import '../models/expense.dart';
 import '../utils/formatters.dart';
 
@@ -14,6 +13,9 @@ class ExpenseListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final isGasto = expense.type == TransactionType.gasto;
+    final amountColor = isGasto ? colorScheme.error : Colors.green;
+    final prefix = isGasto ? '-' : '+';
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -24,7 +26,8 @@ class ExpenseListItem extends StatelessWidget {
         ),
         title: Row(
           children: [
-            Text(expense.category.label, style: theme.textTheme.titleMedium),
+            Text(expense.category.label,
+                style: theme.textTheme.titleMedium),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -42,12 +45,29 @@ class ExpenseListItem extends StatelessWidget {
             ),
           ],
         ),
-        subtitle: Text(formatDateTime(expense.date)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(formatDateTime(expense.date)),
+            if (expense.comment.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                expense.comment,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.outline,
+                  fontStyle: FontStyle.italic,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
         trailing: Text(
-          formatCurrency(expense.amount),
+          '$prefix${formatCurrency(expense.amount)}',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: colorScheme.error,
+            color: amountColor,
           ),
         ),
       ),

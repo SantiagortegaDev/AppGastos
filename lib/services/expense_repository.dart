@@ -1,14 +1,8 @@
-/// Repositorio de gastos con persistencia en `shared_preferences`.
-///
-/// Usa la misma key (`appgastos.expenses.v1`) que el overlay nativo Kotlin,
-/// de manera que los gastos registrados desde el overlay aparezcan al
-/// abrir la app sin necesidad de MethodChannel.
+/// Repositorio de registros con persistencia en `shared_preferences`.
 library;
 
 import 'dart:convert';
-
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/expense.dart';
 
 class ExpenseRepository {
@@ -19,24 +13,10 @@ class ExpenseRepository {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
-    final String? raw = _prefs.getString(_storageKey);
-    if (raw != null && raw.isNotEmpty) {
-      try {
-        final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
-        _expenses.addAll(
-          decoded.map((e) => Expense.fromJson(e as Map<String, dynamic>)),
-        );
-      } catch (_) {
-        // JSON corrupto (raro pero posible si se editó a mano): ignoramos.
-      }
-    }
+    _loadFromDisk();
   }
 
-  /// Recarga desde disco — útil cuando el overlay nativo pudo haber
-  /// agregado un gasto mientras la app estaba en background.
-  Future<void> reload() async {
-    await _prefs.reload();
-    _expenses.clear();
+  void _loadFromDisk() {
     final String? raw = _prefs.getString(_storageKey);
     if (raw != null && raw.isNotEmpty) {
       try {
@@ -48,12 +28,30 @@ class ExpenseRepository {
     }
   }
 
+  Future<void> reload() async {
+    await _prefs.reload();
+    _expenses.clear();
+    _loadFromDisk();
+  }
+
   List<Expense> get all {
     final sorted = [..._expenses]..sort((a, b) => b.date.compareTo(a.date));
     return List.unmodifiable(sorted);
   }
 
-  double get total => _expenses.fold(0.0, (sum, e) => sum + e.amount);
+  double get totalExpenses =>
+      _expenses
+          .where((e) => e.type == TransactionType.gasto)
+          .fold(0.0, (sum, e) => sum + e.amount);
+
+  double get totalIncome =>
+      _expenses
+          .where((e) => e.type == TransactionType.ingreso)
+          .fold(0.0, (sum, e) => sum + e.amount);
+
+  double get balance => totalIncome - totalExpenses;
+
+  int get count => _expenses.length;
 
   Future<void> add(Expense expense) async {
     _expenses.add(expense);

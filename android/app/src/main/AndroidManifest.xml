@@ -1,7 +1,6 @@
-<!-- AndroidManifest.xml — AppGastos con Quick Settings Tile. -->
+<!-- AndroidManifest.xml — AppGastos con 3 Quick Settings Tiles. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Permisos estándar. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
@@ -28,12 +27,34 @@
             </intent-filter>
         </activity>
 
-        <!-- =================================== -->
-        <!--  REGISTRO DEL QUICK SETTINGS TILE   -->
-        <!-- =================================== -->
+        <!-- Tile 1: Registrar gasto -->
         <service
             android:name=".ExpenseTileService"
             android:label="Registrar gasto"
+            android:icon="@mipmap/ic_launcher"
+            android:exported="true"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE"/>
+            </intent-filter>
+        </service>
+
+        <!-- Tile 2: Registrar ingreso -->
+        <service
+            android:name=".IncomeTileService"
+            android:label="Registrar ingreso"
+            android:icon="@mipmap/ic_launcher"
+            android:exported="true"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE"/>
+            </intent-filter>
+        </service>
+
+        <!-- Tile 3: Registrar (con selección) -->
+        <service
+            android:name=".RegisterTileService"
+            android:label="Registrar"
             android:icon="@mipmap/ic_launcher"
             android:exported="true"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">

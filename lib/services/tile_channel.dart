@@ -1,65 +1,58 @@
-/// Puente entre el `TileService` nativo (Kotlin) y Flutter.
-///
-/// Flujo:
-/// 1. El usuario toca el Tile en el panel de ajustes rápidos.
-/// 2. `ExpenseTileService.kt` lanza `MainActivity` con tema transparente
-///    y el extra `open_expense_sheet = true`.
-/// 3. `MainActivity.kt` reenvía ese evento a través de este canal.
-/// 4. Flutter muestra el bottom sheet de captura con fondo transparente
-///    y cierra la app al terminar.
+/// Puente entre los TileServices nativos y Flutter.
 library;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-/// Nombre del canal — DEBE coincidir con el usado en `MainActivity.kt`.
 const String _kChannelName = 'appgastos.dev/tile';
-
-/// Acción que el Tile envía al abrir la app.
-const String _kOpenExpenseSheet = 'openExpenseSheet';
-
-/// Llave del intent extra en Kotlin.
-const String kExtraOpenExpenseSheet = 'open_expense_sheet';
 
 class TileChannel extends ChangeNotifier {
   static const MethodChannel _channel = MethodChannel(_kChannelName);
 
-  /// `true` si la próxima vez que se muestre la pantalla principal,
-  /// debe abrir automáticamente el bottom sheet de captura.
-  bool _pendingOpenRequest = false;
-  bool get pendingOpenRequest => _pendingOpenRequest;
+  /// `true` si hay un pedido pendiente de abrir el modal.
+  bool _pendingOpen = false;
+  bool get hasPendingOpen => _pendingOpen;
 
-  /// Inicializa el canal. Debe llamarse una sola vez desde `main()`.
-  ///
-  /// Devuelve `true` si la app fue abierta desde el Tile (cold-start).
-  /// En ese caso, el flag `pendingOpenRequest` ya queda activado.
+  /// Tipo de transacción que pidió el tile.
+  /// `null` = mostrar selección (tile "Registrar").
+  /// `"gasto"` / `"ingreso"` = saltar selección.
+  String? _pendingType;
+  String? get pendingType => _pendingType;
+
+  /// Inicializa el canal. Devuelve `true` si la app fue abierta desde un tile.
   Future<bool> init() async {
-    // 1) Handler para eventos en vivo (app ya en foreground).
+    // Handler para eventos en vivo (app ya corriendo).
     _channel.setMethodCallHandler((call) async {
-      if (call.method == _kOpenExpenseSheet) {
-        _pendingOpenRequest = true;
+      if (call.method == 'openExpenseSheet') {
+        _pendingOpen = true;
+        _pendingType = call.arguments as String?;
         notifyListeners();
       }
     });
 
-    // 2) Consulta el "initial intent" (caso cold-start).
-    final opened = await _channel.invokeMethod<bool>('getInitialAction');
-    if (opened == true) {
-      _pendingOpenRequest = true;
+    // Cold-start: consultar el intent inicial.
+    final result = await _channel.invokeMethod<Map>('getInitialAction');
+    if (result != null && result['open'] == true) {
+      _pendingOpen = true;
+      _pendingType = result['type'] as String?;
       notifyListeners();
+      return true;
     }
-    return opened == true;
+    return false;
   }
 
-  /// Marca el pedido como consumido (ya abrimos el bottom sheet).
-  void consumeOpenRequest() {
-    if (_pendingOpenRequest) {
-      _pendingOpenRequest = false;
-      notifyListeners();
-    }
+  /// Consume el pedido pendiente y devuelve el tipo (o null para selección).
+  String? consumeRequest() {
+    if (!_pendingOpen) return null;
+    final type = _pendingType;
+    _pendingOpen = false;
+    _pendingType = null;
+    notifyListeners();
+    // '' significa "mostrar selección", lo convertimos a null.
+    return (type != null && type.isNotEmpty) ? type : null;
   }
 
-  /// Solicita cerrar la app (desde modo transparente/Tile).
+  /// Cierra la app (usado después de registrar desde un tile).
   Future<void> finishApp() async {
     try {
       await _channel.invokeMethod<void>('finishApp');
@@ -68,12 +61,10 @@ class TileChannel extends ChangeNotifier {
     }
   }
 
-  /// Solicita el estado "listening" del Tile.
+  /// Solicita actualizar el estado del tile.
   Future<void> requestListeningState() async {
     try {
       await _channel.invokeMethod<void>('requestListeningState');
-    } on PlatformException {
-      // Ignoramos errores.
-    }
+    } on PlatformException {}
   }
 }
