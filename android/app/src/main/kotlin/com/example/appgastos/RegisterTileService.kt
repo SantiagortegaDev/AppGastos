@@ -19,10 +19,9 @@ class RegisterTileService : TileService() {
     override fun onClick() {
         super.onClick()
         startActivityAndCollapse(
-            Intent(this, MainActivity::class.java).apply {
+            Intent(this, OverlayActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra(MainActivity.EXTRA_OPEN_SHEET, true)
+                        Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
                 // Sin EXTRA_TX_TYPE → Flutter muestra la selección.
             }
         )

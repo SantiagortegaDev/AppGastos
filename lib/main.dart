@@ -9,6 +9,8 @@ import 'screens/search_screen.dart';
 import 'services/expense_repository.dart';
 import 'services/settings_service.dart';
 import 'services/tile_channel.dart';
+// ignore: unused_import
+import 'overlay_main.dart'; // Mantiene overlayMain() alcanzable para el build AOT (lo usa OverlayActivity).
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

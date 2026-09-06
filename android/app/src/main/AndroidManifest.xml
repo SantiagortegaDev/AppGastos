@@ -27,6 +27,24 @@
             </intent-filter>
         </activity>
 
+        <!-- Activity flotante: se abre desde los tiles, se superpone a la
+             app actual y se cierra sola (tap afuera o al guardar). -->
+        <activity
+            android:name=".OverlayActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/OverlayTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|density"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/OverlayTheme"/>
+        </activity>
+
         <!-- Tile 1: Registrar gasto -->
         <service
             android:name=".ExpenseTileService"
