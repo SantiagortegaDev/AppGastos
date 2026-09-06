@@ -454,7 +454,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
       const ListTile(
         leading: Icon(Icons.savings_outlined),
         title: Text('AppGastos'),
-        subtitle: Text('v1.2.0'),
+        subtitle: Text('v1.3.0'),
       ),
     ]);
   }
