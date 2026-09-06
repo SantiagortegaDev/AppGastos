@@ -11,21 +11,32 @@ import '../models/currency.dart';
 import '../models/budget.dart';
 import '../models/account.dart';
 import '../models/expense.dart';
+import '../models/payment_watch_rule.dart';
+import '../services/payment_watch_service.dart';
 import '../services/settings_service.dart';
+import '../services/tile_channel.dart';
 import '../widgets/section_card.dart';
 import '../widgets/color_picker_widget.dart';
 
 class SettingsScreen extends StatefulWidget {
   final SettingsService settingsService;
-  const SettingsScreen({super.key, required this.settingsService});
+  final PaymentWatchService paymentWatchService;
+  final TileChannel tileChannel;
+  const SettingsScreen({
+    super.key,
+    required this.settingsService,
+    required this.paymentWatchService,
+    required this.tileChannel,
+  });
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
   late TextEditingController _webhookCtrl;
   late TextEditingController _apiUrlCtrl;
   late TextEditingController _apiTokenCtrl;
+  bool _notifListenerEnabled = false;
 
   @override
   void initState() {
@@ -34,10 +45,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _webhookCtrl = TextEditingController(text: s.webhookUrl);
     _apiUrlCtrl = TextEditingController(text: s.apiBaseUrl);
     _apiTokenCtrl = TextEditingController(text: s.apiToken);
+    WidgetsBinding.instance.addObserver(this);
+    _refreshNotifListenerStatus();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // El usuario activa el permiso en una pantalla del sistema aparte;
+    // al volver a la app conviene refrescar el estado mostrado.
+    if (state == AppLifecycleState.resumed) _refreshNotifListenerStatus();
+  }
+
+  Future<void> _refreshNotifListenerStatus() async {
+    final enabled = await widget.tileChannel.isNotificationListenerEnabled();
+    if (mounted) setState(() => _notifListenerEnabled = enabled);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _webhookCtrl.dispose();
     _apiUrlCtrl.dispose();
     _apiTokenCtrl.dispose();
@@ -69,6 +95,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _sectionAccesoRapido(),
               const SizedBox(height: 12),
               _sectionSeguridad(s, c),
+              const SizedBox(height: 12),
+              _sectionDeteccionPagos(),
               const SizedBox(height: 12),
               _sectionWebhook(s, c),
               const SizedBox(height: 12),
@@ -251,6 +279,115 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
     ]);
+  }
+
+  Widget _sectionDeteccionPagos() {
+    return ListenableBuilder(
+      listenable: widget.paymentWatchService,
+      builder: (context, _) {
+        final rules = widget.paymentWatchService.rules;
+        return SectionCard(title: 'Detección de pagos', icon: Icons.notifications_active_outlined, children: [
+          ListTile(
+            leading: Icon(
+              _notifListenerEnabled ? Icons.check_circle_outline : Icons.warning_amber_outlined,
+              color: _notifListenerEnabled ? Colors.green : Theme.of(context).colorScheme.error,
+            ),
+            title: Text(_notifListenerEnabled ? 'Acceso a notificaciones activado' : 'Acceso a notificaciones desactivado'),
+            subtitle: const Text('Necesario para detectar pagos en otras apps. Se activa en un ajuste especial del sistema.'),
+            trailing: FilledButton.tonal(
+              onPressed: () async {
+                await widget.tileChannel.openNotificationListenerSettings();
+                if (mounted) await Future.delayed(const Duration(milliseconds: 400));
+                await _refreshNotifListenerStatus();
+              },
+              child: Text(_notifListenerEnabled ? 'Revisar' : 'Activar'),
+            ),
+          ),
+          const Divider(height: 1),
+          ...rules.map((rule) => ListTile(
+                leading: const Icon(Icons.apps_outlined),
+                title: Text(rule.label),
+                subtitle: Text(
+                  rule.keywords.isEmpty
+                      ? rule.packageName
+                      : '${rule.packageName}\nPalabras clave: ${rule.keywords.join(", ")}',
+                ),
+                isThreeLine: rule.keywords.isNotEmpty,
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  onPressed: () => widget.paymentWatchService.removeRule(rule.id),
+                ),
+              )),
+          if (rules.isEmpty)
+            const Padding(padding: EdgeInsets.all(16), child: Text('Sin apps configuradas para detectar pagos.')),
+          ListTile(
+            leading: const Icon(Icons.add),
+            title: const Text('Agregar app a vigilar'),
+            onTap: _addPaymentWatchRule,
+          ),
+        ]);
+      },
+    );
+  }
+
+  Future<void> _addPaymentWatchRule() async {
+    final labelCtrl = TextEditingController();
+    final packageCtrl = TextEditingController();
+    final keywordsCtrl = TextEditingController();
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSt) => AlertDialog(
+        title: const Text('Vigilar app de pagos'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Wrap(
+              spacing: 6, runSpacing: 6,
+              children: kSuggestedPaymentApps.map((s) => ActionChip(
+                    label: Text(s.$1),
+                    onPressed: () => setSt(() {
+                      labelCtrl.text = s.$1;
+                      packageCtrl.text = s.$2;
+                    }),
+                  )).toList(),
+            ),
+            const SizedBox(height: 12),
+            TextField(controller: labelCtrl, decoration: const InputDecoration(labelText: 'Nombre a mostrar', border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+            TextField(
+              controller: packageCtrl,
+              decoration: const InputDecoration(labelText: 'Paquete de la app', hintText: 'com.ejemplo.app', border: OutlineInputBorder()),
+              autocorrect: false,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: keywordsCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Palabras clave (separadas por coma)',
+                hintText: 'pago, compra, transferencia',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'La notificación debe contener al menos una de estas palabras para avisarte. Dejalo vacío para vigilar todas las notificaciones de esa app.',
+              style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: Theme.of(ctx).colorScheme.outline),
+            ),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          FilledButton(onPressed: () {
+            final label = labelCtrl.text.trim();
+            final package = packageCtrl.text.trim();
+            if (label.isEmpty || package.isEmpty) return;
+            final keywords = keywordsCtrl.text.split(',').map((k) => k.trim()).where((k) => k.isNotEmpty).toList();
+            widget.paymentWatchService.addRule(PaymentWatchRule.create(packageName: package, label: label, keywords: keywords));
+            Navigator.pop(ctx);
+          }, child: const Text('Guardar')),
+        ],
+      )),
+    );
   }
 
   Widget _sectionWebhook(SettingsService s, AppSettings c) {

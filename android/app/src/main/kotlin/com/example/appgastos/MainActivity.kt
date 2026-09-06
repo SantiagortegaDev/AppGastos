@@ -3,6 +3,7 @@ package com.example.appgastos
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.service.quicksettings.TileService
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
@@ -22,12 +23,17 @@ class MainActivity : FlutterActivity() {
         const val CHANNEL_NAME = "appgastos.dev/tile"
         const val EXTRA_OPEN_SHEET = "open_expense_sheet"
         const val EXTRA_TX_TYPE = "transaction_type"
+        const val EXTRA_PAYMENT_DETECTED = "payment_detected"
+        const val EXTRA_PAYMENT_SOURCE_PACKAGE = "payment_source_package"
+        const val EXTRA_PAYMENT_SOURCE_LABEL = "payment_source_label"
+        const val EXTRA_PAYMENT_TEXT = "payment_text"
         private const val ACTION_QS_ADD_TILE = "android.service.quicksettings.action.QS_ADD_TILE"
         private const val TILE_COMPONENT_EXTRA = "android.service.quicksettings.extra.TILE_COMPONENT"
     }
 
     private var pendingOpenSheet = false
     private var pendingType: String? = null
+    private var pendingPayment: Map<String, Any?>? = null
     private var channel: MethodChannel? = null
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
@@ -39,10 +45,12 @@ class MainActivity : FlutterActivity() {
                 "getInitialAction" -> {
                     val map = mapOf(
                         "open" to pendingOpenSheet,
-                        "type" to (pendingType ?: "")
+                        "type" to (pendingType ?: ""),
+                        "payment" to pendingPayment
                     )
                     pendingOpenSheet = false
                     pendingType = null
+                    pendingPayment = null
                     result.success(map)
                 }
                 "requestAddTile" -> result.success(tryRequestAddTile())
@@ -54,6 +62,17 @@ class MainActivity : FlutterActivity() {
                     finishAffinity()
                     result.success(null)
                 }
+                "openNotificationListenerSettings" -> {
+                    try {
+                        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
+                "isNotificationListenerEnabled" -> {
+                    result.success(isNotificationListenerEnabled())
+                }
                 else -> result.notImplemented()
             }
         }
@@ -63,11 +82,13 @@ class MainActivity : FlutterActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleSheetIntent(intent, coldStart = false)
+        handlePaymentIntent(intent, coldStart = false)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleSheetIntent(intent, coldStart = true)
+        handlePaymentIntent(intent, coldStart = true)
     }
 
     private fun handleSheetIntent(intent: Intent?, coldStart: Boolean) {
@@ -83,6 +104,32 @@ class MainActivity : FlutterActivity() {
         }
         intent?.removeExtra(EXTRA_OPEN_SHEET)
         intent?.removeExtra(EXTRA_TX_TYPE)
+    }
+
+    private fun handlePaymentIntent(intent: Intent?, coldStart: Boolean) {
+        val detected = intent?.getBooleanExtra(EXTRA_PAYMENT_DETECTED, false) == true
+        if (!detected) return
+
+        val payment = mapOf(
+            "sourcePackage" to (intent?.getStringExtra(EXTRA_PAYMENT_SOURCE_PACKAGE) ?: ""),
+            "sourceLabel" to (intent?.getStringExtra(EXTRA_PAYMENT_SOURCE_LABEL) ?: ""),
+            "text" to (intent?.getStringExtra(EXTRA_PAYMENT_TEXT) ?: "")
+        )
+        if (coldStart) {
+            pendingPayment = payment
+        } else {
+            channel?.invokeMethod("paymentDetected", payment)
+        }
+        intent?.removeExtra(EXTRA_PAYMENT_DETECTED)
+        intent?.removeExtra(EXTRA_PAYMENT_SOURCE_PACKAGE)
+        intent?.removeExtra(EXTRA_PAYMENT_SOURCE_LABEL)
+        intent?.removeExtra(EXTRA_PAYMENT_TEXT)
+    }
+
+    private fun isNotificationListenerEnabled(): Boolean {
+        val enabledListeners = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+            ?: return false
+        return enabledListeners.contains(packageName)
     }
 
     private fun tryRequestAddTile(): Boolean {

@@ -13,6 +13,7 @@ import '../services/tile_channel.dart';
 import '../utils/formatters.dart';
 import '../widgets/add_expense_sheet.dart';
 import '../widgets/expense_list_item.dart';
+import 'payment_verification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final ExpenseRepository repository;
@@ -43,6 +44,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (mounted && !_sheetShown) _openSheetFromTile();
       });
     }
+    if (widget.tileChannel.hasPendingPayment) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openPaymentVerification();
+      });
+    }
   }
 
   @override
@@ -63,6 +69,21 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _onTileEvent() {
     if (widget.tileChannel.hasPendingOpen) _openSheetFromTile();
+    if (widget.tileChannel.hasPendingPayment) _openPaymentVerification();
+  }
+
+  Future<void> _openPaymentVerification() async {
+    final payment = widget.tileChannel.consumePendingPayment();
+    if (payment == null) return;
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => PaymentVerificationScreen(
+        repository: widget.repository,
+        settingsService: widget.settingsService,
+        sourceLabel: payment.sourceLabel,
+        rawText: payment.text,
+      ),
+    ));
+    if (mounted) setState(_refresh);
   }
 
   void _openSheetFromTile() {

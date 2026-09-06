@@ -84,6 +84,19 @@
             </intent-filter>
         </service>
 
+        <!-- Escucha notificaciones del sistema para detectar posibles pagos.
+             Requiere que el usuario active "Acceso a notificaciones" a mano
+             en Ajustes del sistema (no se puede pedir en runtime). -->
+        <service
+            android:name=".PaymentNotificationListenerService"
+            android:label="AppGastos — Detección de pagos"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService"/>
+            </intent-filter>
+        </service>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2"/>
