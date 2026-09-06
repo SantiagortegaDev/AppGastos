@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'models/expense.dart';
 import 'services/expense_repository.dart';
+import 'services/notification_service.dart';
 import 'services/settings_service.dart';
 import 'widgets/add_expense_sheet.dart';
 
@@ -26,6 +27,7 @@ Future<void> _bootstrap() async {
   await repository.init();
   final settingsService = SettingsService();
   await settingsService.init();
+  await NotificationService.instance.init();
   runApp(_OverlayApp(repository: repository, settingsService: settingsService));
 }
 

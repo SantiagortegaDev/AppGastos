@@ -7,6 +7,7 @@ import 'screens/stats_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/search_screen.dart';
 import 'services/expense_repository.dart';
+import 'services/notification_service.dart';
 import 'services/settings_service.dart';
 import 'services/tile_channel.dart';
 // ignore: unused_import
@@ -20,6 +21,11 @@ void main() async {
   await settingsService.init();
   final tileChannel = TileChannel();
   await tileChannel.init();
+  await NotificationService.instance.init();
+  await NotificationService.instance.scheduleRegisterReminder(
+    enabled: settingsService.settings.reminderEnabled,
+    days: settingsService.settings.reminderDays,
+  );
 
   runApp(AppGastosApp(
     repository: repository,

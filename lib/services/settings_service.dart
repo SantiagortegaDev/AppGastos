@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/account.dart';
 import '../models/app_settings.dart';
 import '../models/budget.dart';
+import 'notification_service.dart';
 
 class SettingsService extends ChangeNotifier {
   static const String _key = 'appgastos.settings.v2';
@@ -77,8 +78,20 @@ class SettingsService extends ChangeNotifier {
   Future<void> setAskForComment(bool v) => update(_settings.copyWith(askForComment: v));
   Future<void> setCurrencyCode(String code) => update(_settings.copyWith(currencyCode: code));
   Future<void> setBiometricLock(bool v) => update(_settings.copyWith(biometricLock: v));
-  Future<void> setReminderEnabled(bool v) => update(_settings.copyWith(reminderEnabled: v));
-  Future<void> setReminderDays(int d) => update(_settings.copyWith(reminderDays: d));
+  Future<void> setReminderEnabled(bool v) async {
+    await update(_settings.copyWith(reminderEnabled: v));
+    await _rescheduleReminder();
+  }
+
+  Future<void> setReminderDays(int d) async {
+    await update(_settings.copyWith(reminderDays: d));
+    await _rescheduleReminder();
+  }
+
+  Future<void> _rescheduleReminder() => NotificationService.instance.scheduleRegisterReminder(
+        enabled: _settings.reminderEnabled,
+        days: _settings.reminderDays,
+      );
   Future<void> setApiBaseUrl(String u) => update(_settings.copyWith(apiBaseUrl: u));
   Future<void> setApiToken(String t) => update(_settings.copyWith(apiToken: t));
 

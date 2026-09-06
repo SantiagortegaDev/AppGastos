@@ -9,6 +9,7 @@ import '../models/account.dart';
 import '../models/app_settings.dart';
 import '../models/expense.dart';
 import '../services/expense_repository.dart';
+import '../services/notification_service.dart';
 import '../services/webhook_service.dart';
 import '../utils/formatters.dart';
 
@@ -112,6 +113,11 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     );
 
     await widget.repository.add(expense);
+    // Reinicia la cuenta del recordatorio: acabás de registrar algo.
+    await NotificationService.instance.scheduleRegisterReminder(
+      enabled: widget.settings.reminderEnabled,
+      days: widget.settings.reminderDays,
+    );
 
     // Actualizar balance de la billetera.
     final newBalance = _selectedType == TransactionType.ingreso
