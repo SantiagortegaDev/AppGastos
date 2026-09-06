@@ -25,10 +25,20 @@ subprojects {
 
     // Fuerza JVM 17 tanto para javac como para kotlinc en todos los módulos
     // (app + cada plugin), evitando el mismatch que rompe el build con
-    // plugins que todavía declaran un jvmTarget viejo (1.8) a mano.
-    tasks.withType<JavaCompile>().configureEach {
-        sourceCompatibility = JavaVersion.VERSION_17.toString()
-        targetCompatibility = JavaVersion.VERSION_17.toString()
+    // plugins que todavía declaran un jvmTarget viejo a mano.
+    //
+    // IMPORTANTE: para los módulos Android (app y plugins) hay que setear
+    // `android.compileOptions`, NO las propiedades del task JavaCompile
+    // directamente — AGP recalcula esas propiedades del task a partir de
+    // `compileOptions` durante su propio afterEvaluate, así que un
+    // `tasks.withType<JavaCompile>` corriendo antes queda pisado. Por eso
+    // esto también va en un afterEvaluate (para ejecutar después del
+    // afterEvaluate que registra cada plugin, no antes).
+    afterEvaluate {
+        extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.let { androidExt ->
+            androidExt.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
+            androidExt.compileOptions.targetCompatibility = JavaVersion.VERSION_17
+        }
     }
     tasks.withType<KotlinCompile>().configureEach {
         compilerOptions {
