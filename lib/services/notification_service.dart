@@ -25,8 +25,8 @@ class NotificationService {
     if (_ready) return;
     tz_data.initializeTimeZones();
     try {
-      final name = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(name));
+      final info = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(info.identifier));
     } catch (_) {
       // Si falla, se queda en UTC — el recordatorio igual dispara,
       // solo puede variar unas horas la hora exacta.
