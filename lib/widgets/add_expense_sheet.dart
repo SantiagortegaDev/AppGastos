@@ -17,6 +17,8 @@ class AddExpenseSheet extends StatefulWidget {
   final ExpenseRepository repository;
   final AppSettings settings;
   final TransactionType? initialType;
+  final double? initialAmount;
+  final String? initialComment;
   final Future<void> Function(Expense)? onExpenseSaved;
 
   const AddExpenseSheet({
@@ -24,6 +26,8 @@ class AddExpenseSheet extends StatefulWidget {
     required this.repository,
     required this.settings,
     this.initialType,
+    this.initialAmount,
+    this.initialComment,
     this.onExpenseSaved,
   });
 
@@ -32,6 +36,8 @@ class AddExpenseSheet extends StatefulWidget {
     ExpenseRepository repository,
     AppSettings settings, {
     TransactionType? initialType,
+    double? initialAmount,
+    String? initialComment,
     Future<void> Function(Expense)? onExpenseSaved,
   }) async {
     final result = await showModalBottomSheet<bool>(
@@ -45,6 +51,8 @@ class AddExpenseSheet extends StatefulWidget {
         repository: repository,
         settings: settings,
         initialType: initialType,
+        initialAmount: initialAmount,
+        initialComment: initialComment,
         onExpenseSaved: onExpenseSaved,
       ),
     );
@@ -78,6 +86,15 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     _accounts = widget.settings.accounts;
     _showCommentStep = widget.settings.askForComment;
     _step = widget.initialType != null ? 1 : 0;
+    if (widget.initialAmount != null && widget.initialAmount! > 0) {
+      _amount = widget.initialAmount!;
+      _amountCtrl.text = _amount == _amount.roundToDouble()
+          ? _amount.toStringAsFixed(0)
+          : _amount.toString();
+    }
+    if (widget.initialComment != null) {
+      _commentCtrl.text = widget.initialComment!;
+    }
   }
 
   @override
