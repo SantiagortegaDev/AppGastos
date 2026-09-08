@@ -1,15 +1,19 @@
 /// Pantalla principal con diseño MD3 limpio.
 library;
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show MethodChannel;
+import 'package:image_picker/image_picker.dart';
 import '../models/expense.dart';
 import '../services/expense_repository.dart';
+import '../services/receipt_scanner_service.dart';
 import '../services/settings_service.dart';
 import '../services/tile_channel.dart';
 import '../utils/formatters.dart';
 import '../widgets/add_expense_sheet.dart';
 import '../widgets/expense_list_item.dart';
+import 'payment_verification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final ExpenseRepository repository;
@@ -40,6 +44,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (mounted && !_sheetShown) _openSheetFromTile();
       });
     }
+    if (widget.tileChannel.hasPendingPayment) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openPaymentVerification();
+      });
+    }
   }
 
   @override
@@ -60,6 +69,21 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _onTileEvent() {
     if (widget.tileChannel.hasPendingOpen) _openSheetFromTile();
+    if (widget.tileChannel.hasPendingPayment) _openPaymentVerification();
+  }
+
+  Future<void> _openPaymentVerification() async {
+    final payment = widget.tileChannel.consumePendingPayment();
+    if (payment == null) return;
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => PaymentVerificationScreen(
+        repository: widget.repository,
+        settingsService: widget.settingsService,
+        sourceLabel: payment.sourceLabel,
+        rawText: payment.text,
+      ),
+    ));
+    if (mounted) setState(_refresh);
   }
 
   void _openSheetFromTile() {
@@ -70,12 +94,19 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _openSheet({TransactionType? initialType, bool closeAppAfter = false}) async {
+  Future<void> _openSheet({
+    TransactionType? initialType,
+    bool closeAppAfter = false,
+    double? initialAmount,
+    String? initialComment,
+  }) async {
     _sheetShown = true;
     final settings = widget.settingsService.settings;
     final added = await AddExpenseSheet.show(
       context, widget.repository, settings,
       initialType: initialType,
+      initialAmount: initialAmount,
+      initialComment: initialComment,
       onExpenseSaved: (expense) async {
         final acc = expense.account;
         final newBalance = expense.type == TransactionType.ingreso
@@ -86,6 +117,55 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
     if (added) setState(_refresh);
     if (closeAppAfter && mounted) widget.tileChannel.finishApp();
+  }
+
+  Future<void> _scanReceipt() async {
+    final picker = ImagePicker();
+    XFile? photo;
+    try {
+      photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 85, maxWidth: 2000);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir la cámara.')),
+        );
+      }
+      return;
+    }
+    if (photo == null || !mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    ReceiptScanResult result;
+    try {
+      result = await ReceiptScannerService().scanFromFile(File(photo.path));
+    } catch (_) {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo leer el recibo. Probá de nuevo con mejor luz.')),
+        );
+      }
+      return;
+    }
+    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+    if (!mounted) return;
+
+    if (result.amount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se detectó un monto. Revisá el recibo y completalo a mano.')),
+      );
+    }
+
+    await _openSheet(
+      initialType: TransactionType.gasto,
+      initialAmount: result.amount,
+      initialComment: result.bestLine,
+    );
   }
 
   @override
@@ -103,6 +183,11 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             title: Text('AppGastos', style: const TextStyle(fontWeight: FontWeight.bold)),
             centerTitle: false,
             actions: [
+              IconButton(
+                icon: const Icon(Icons.document_scanner_outlined),
+                tooltip: 'Escanear recibo',
+                onPressed: _scanReceipt,
+              ),
               IconButton(
                 icon: const Icon(Icons.search_outlined),
                 tooltip: 'Buscar',
@@ -167,10 +252,8 @@ class HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Card(
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
-        ),
+        color: cs.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(

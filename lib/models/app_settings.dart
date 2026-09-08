@@ -38,6 +38,7 @@ class ColorPalette {
 class AppSettings {
   final AppThemeMode themeMode;
   final Color seedColor;
+  final bool dynamicColorEnabled;
   final List<Account> accounts;
   final String defaultAccountId;
   final String webhookUrl;
@@ -54,6 +55,7 @@ class AppSettings {
   const AppSettings({
     this.themeMode = AppThemeMode.system,
     this.seedColor = const Color(0xFF22C55E),
+    this.dynamicColorEnabled = false,
     this.accounts = kDefaultAccounts,
     this.defaultAccountId = 'acc-cash',
     this.webhookUrl = '',
@@ -84,6 +86,7 @@ class AppSettings {
   AppSettings copyWith({
     AppThemeMode? themeMode,
     Color? seedColor,
+    bool? dynamicColorEnabled,
     List<Account>? accounts,
     String? defaultAccountId,
     String? webhookUrl,
@@ -99,6 +102,7 @@ class AppSettings {
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
         seedColor: seedColor ?? this.seedColor,
+        dynamicColorEnabled: dynamicColorEnabled ?? this.dynamicColorEnabled,
         accounts: accounts ?? this.accounts,
         defaultAccountId: defaultAccountId ?? this.defaultAccountId,
         webhookUrl: webhookUrl ?? this.webhookUrl,
