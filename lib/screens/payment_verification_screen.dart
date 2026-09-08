@@ -95,10 +95,7 @@ class _PaymentVerificationScreenState extends State<PaymentVerificationScreen> {
           Card(
             elevation: 0,
             color: cs.surfaceContainerHigh,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.6)),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(

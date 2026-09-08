@@ -1,6 +1,7 @@
 /// Punto de entrada — navegación con 3 tabs.
 library;
 
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'screens/debts_screen.dart';
 import 'screens/home_screen.dart';
@@ -65,42 +66,41 @@ class AppGastosApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: s,
       builder: (context, _) {
-        return MaterialApp(
-          title: 'AppGastos',
-          debugShowCheckedModeBanner: false,
-          themeMode: s.settings.flutterThemeMode,
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: s.settings.seedColor,
-              brightness: Brightness.light,
-            ),
-          ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: s.settings.seedColor,
-              brightness: Brightness.dark,
-            ),
-          ),
-          onGenerateRoute: (settings) {
-            if (settings.name == '/search') {
-              return MaterialPageRoute(
-                builder: (_) => SearchScreen(
-                  repository: repository,
-                  settingsService: s,
-                ),
-              );
-            }
-            return null;
+        return DynamicColorBuilder(
+          builder: (lightDynamic, darkDynamic) {
+            final useDynamic = s.settings.dynamicColorEnabled && lightDynamic != null && darkDynamic != null;
+            final lightScheme = useDynamic
+                ? lightDynamic!.harmonized()
+                : ColorScheme.fromSeed(seedColor: s.settings.seedColor, brightness: Brightness.light);
+            final darkScheme = useDynamic
+                ? darkDynamic!.harmonized()
+                : ColorScheme.fromSeed(seedColor: s.settings.seedColor, brightness: Brightness.dark);
+            return MaterialApp(
+              title: 'AppGastos',
+              debugShowCheckedModeBanner: false,
+              themeMode: s.settings.flutterThemeMode,
+              theme: ThemeData(useMaterial3: true, colorScheme: lightScheme),
+              darkTheme: ThemeData(useMaterial3: true, colorScheme: darkScheme),
+              onGenerateRoute: (settings) {
+                if (settings.name == '/search') {
+                  return MaterialPageRoute(
+                    builder: (_) => SearchScreen(
+                      repository: repository,
+                      settingsService: s,
+                    ),
+                  );
+                }
+                return null;
+              },
+              home: MainShell(
+                repository: repository,
+                debtRepository: debtRepository,
+                settingsService: s,
+                paymentWatchService: paymentWatchService,
+                tileChannel: tileChannel,
+              ),
+            );
           },
-          home: MainShell(
-            repository: repository,
-            debtRepository: debtRepository,
-            settingsService: s,
-            paymentWatchService: paymentWatchService,
-            tileChannel: tileChannel,
-          ),
         );
       },
     );

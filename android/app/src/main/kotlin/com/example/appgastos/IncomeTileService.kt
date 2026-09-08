@@ -18,12 +18,13 @@ class IncomeTileService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        startActivityAndCollapse(
+        launchOverlay(
             Intent(this, OverlayActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
                 putExtra(OverlayActivity.EXTRA_TX_TYPE, "ingreso")
-            }
+            },
+            requestCode = 102,
         )
     }
 }

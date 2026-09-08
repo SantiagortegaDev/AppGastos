@@ -130,6 +130,14 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
         ),
       ),
       const Divider(height: 1),
+      SwitchListTile(
+        secondary: const Icon(Icons.wallpaper_outlined),
+        title: const Text('Color dinámico (Material You)'),
+        subtitle: const Text('Usa los colores de tu fondo de pantalla (Android 12+). Si lo activás, se ignora el color manual de abajo.'),
+        value: c.dynamicColorEnabled,
+        onChanged: (v) => s.setDynamicColorEnabled(v),
+      ),
+      const Divider(height: 1),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Text('Color de la app', style: Theme.of(context).textTheme.titleSmall),

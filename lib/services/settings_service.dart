@@ -29,6 +29,7 @@ class SettingsService extends ChangeNotifier {
             orElse: () => AppThemeMode.system,
           ),
           seedColor: Color((json['seedColor'] as num).toInt()),
+          dynamicColorEnabled: json['dynamicColorEnabled'] as bool? ?? false,
           accounts: (json['accounts'] as List<dynamic>)
               .map((a) => Account.fromJson(a as Map<String, dynamic>))
               .toList(),
@@ -58,6 +59,7 @@ class SettingsService extends ChangeNotifier {
     await _prefs.setString(_key, jsonEncode({
       'themeMode': _settings.themeMode.name,
       'seedColor': _settings.seedColor.value,
+      'dynamicColorEnabled': _settings.dynamicColorEnabled,
       'accounts': _settings.accounts.map((a) => a.toJson()).toList(),
       'defaultAccountId': _settings.defaultAccountId,
       'webhookUrl': _settings.webhookUrl,
@@ -74,6 +76,7 @@ class SettingsService extends ChangeNotifier {
 
   Future<void> setThemeMode(AppThemeMode mode) => update(_settings.copyWith(themeMode: mode));
   Future<void> setSeedColor(Color color) => update(_settings.copyWith(seedColor: color));
+  Future<void> setDynamicColorEnabled(bool v) => update(_settings.copyWith(dynamicColorEnabled: v));
   Future<void> setWebhookUrl(String url) => update(_settings.copyWith(webhookUrl: url));
   Future<void> setAskForComment(bool v) => update(_settings.copyWith(askForComment: v));
   Future<void> setCurrencyCode(String code) => update(_settings.copyWith(currencyCode: code));

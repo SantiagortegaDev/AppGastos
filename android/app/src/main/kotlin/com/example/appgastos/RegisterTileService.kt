@@ -18,12 +18,13 @@ class RegisterTileService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        startActivityAndCollapse(
+        launchOverlay(
             Intent(this, OverlayActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
                 // Sin EXTRA_TX_TYPE → Flutter muestra la selección.
-            }
+            },
+            requestCode = 103,
         )
     }
 }
