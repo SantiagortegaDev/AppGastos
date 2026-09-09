@@ -1,0 +1,5 @@
+# Herramientas de Claude Code instaladas localmente (skills de terceros),
+# no son parte de la app.
+.agents/
+.claude/
+skills-lock.json
